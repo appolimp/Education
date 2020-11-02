@@ -1,0 +1,7 @@
+levels:
+  - !random_map
+        rat: 12
+        done: 23
+  - !some_map {}
+  - !random_map {}
+  - !some_map {}
