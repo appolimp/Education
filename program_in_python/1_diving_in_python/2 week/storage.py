@@ -28,4 +28,4 @@ parser.add_argument("--val", help="give me a val")
 args = parser.parse_args()
 
 key_val(args.key, args.val)
-print(dat)
+# print(dat)

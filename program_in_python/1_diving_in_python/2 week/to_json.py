@@ -1,7 +1,9 @@
 import json
+from functools import wraps
 
 
 def to_json(func):
+    @wraps(func)
     def wrapped(*args, **kwargs):
         result = func(*args, **kwargs)
         if isinstance(result, set):
@@ -67,7 +69,7 @@ def get_lol():
 def f(a, b, c):
     return [a, b, c]
 
-
+"""
 print(get_data())  # вернёт '{"data": 42}'
 print(get_int())
 print(get_set())
@@ -80,3 +82,4 @@ print(get_none())
 print(get_lol())
 print(f(1, 2, 3))  # '[1, 2, 3]'
 
+"""

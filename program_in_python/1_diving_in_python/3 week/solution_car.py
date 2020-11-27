@@ -28,6 +28,7 @@ class CarBase:
 
     @classmethod
     def from_string(cls, car_type, brand, passenger_seats_count, photo_file_name, body_whl, carrying, extra, *args):
+
         if car_type == 'car':
             return Car(brand, photo_file_name, carrying, passenger_seats_count)
         if car_type == 'truck':
@@ -55,7 +56,10 @@ class Truck(CarBase):
     def __init__(self, brand, photo_file_name, carrying, body_whl='0x0x0'):
         super().__init__(brand, photo_file_name, carrying)
         self.body_whl = '0x0x0' if body_whl == '' else body_whl
-        self.body_length, self.body_width, self.body_height = map(float, self.body_whl.split('x'))
+        try:
+            self.body_length, self.body_width, self.body_height = map(float, self.body_whl.split('x'))
+        except (ValueError, ):
+            self.body_length, self.body_width, self.body_height = 0.0, 0.0, 0.0
 
     def get_body_volume(self):
         return self.body_length * self.body_width * self.body_height
@@ -75,16 +79,15 @@ class SpecMachine(CarBase):
 def get_car_list(csv_filename):
     car_list = []
     with open(csv_filename, encoding='utf-8') as csv_fd:
-        reader = csv.reader(csv_fd, delimiter=';')
+        reader = csv.reader(csv_fd, delimiter=',')
         next(reader)  # пропускаем заголовок
         for row in reader:
             if row and row[0]:
                 try:
                     car_list.append(CarBase.from_string(*row))
-                except ValueError:
+                except (ValueError, TypeError):
                     continue
-                except TypeError:
-                    continue
+
     return car_list
 
 
@@ -93,7 +96,7 @@ def main():
     print(len(cars))
     for car in cars:
         print(type(car))
-
+    print('--')
     print(cars[0].passenger_seats_count)
     print(cars[1].get_body_volume())
 
