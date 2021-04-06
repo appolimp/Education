@@ -3,11 +3,8 @@ import os.path
 import logging
 import email.parser
 import email.policy
-from email.iterators import _structure
 import datetime
 
-from htmldocx import HtmlToDocx
-from docx import Document
 
 PATH = 'data\\'
 PATH_OUT = 'out'
@@ -114,6 +111,25 @@ def replace_link_to_image(html, images_id_and_path):
     return html
 
 
+def create_info_about_attachments(attachments):
+    added_lines = [b'<DIV><FONT size=4 face=Arial>Attachments:</FONT></DIV>', b'<ol>']
+    for attachment_name in attachments:
+        added_lines.append(b'	<li>' + attachment_name.encode() + b'</li>')
+
+    added_lines.extend([b'</ol>', b'<HR>'])
+
+    return added_lines
+
+
+def add_to_top(html, added_lines):
+    lines = html.split(b'\n')
+    number_line_start_with = next(i for i, line in enumerate(lines) if line.startswith(b'<BODY'))
+    result = lines[:number_line_start_with + 1] + added_lines + lines[number_line_start_with + 1:]
+
+    logging.debug(f'Add {len(added_lines)} lines to top')
+    return b'\n'.join(result)
+
+
 def convert_eml_to_html(eml_file, out_folder):
     msg = parsing_file(eml_file)
 
@@ -125,12 +141,19 @@ def convert_eml_to_html(eml_file, out_folder):
     attachments = parse_attachment_and_save(msg, folder_path, PATH_ATTACH)
 
     html = parse_html(msg)
-    html_with_img = replace_link_to_image(html, images_id_and_path)
+
+    if images_id_and_path:
+        html = replace_link_to_image(html, images_id_and_path)
+
+    if attachments:
+        info_about_attachments = create_info_about_attachments(attachments)
+        html = add_to_top(html, info_about_attachments)
+    
 
     html_name = msg['Subject']
     html_path = os.path.join(folder_path, html_name + '.html')
     with open(html_path, 'wb') as f:
-        f.write(html_with_img)
+        f.write(html)
 
     logging.debug(f'OK. Convert eml to html [{eml_file} --> {html_path}]')
 
