@@ -128,7 +128,6 @@ def add_to_top(html, added_lines):
     lines = html.split(b'\n')
     number_line_start_with = next(i for i, line in enumerate(lines) if line.startswith(b'<BODY'))
     result = lines[:number_line_start_with + 1] + added_lines + lines[number_line_start_with + 1:]
-    import shutil
     logging.debug('Add {} lines to top'.format(len(added_lines)))
     return b'\n'.join(result)
 
