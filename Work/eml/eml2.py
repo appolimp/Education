@@ -12,6 +12,7 @@ from docx import Document
 PATH = 'data\\'
 PATH_OUT = 'out'
 PATH_IMAGE = 'img'
+PATH_ATTACH = 'attach'
 
 
 def create_name_for_folder(data_str, subject):
@@ -63,8 +64,29 @@ def parse_images_and_save(message, folder_path, relative_image_path):
     return img_id_and_path
 
 
+def parse_attachment_and_save(message, folder_path, relative_attachment_path):
+    attach_name_and_path = {}
+
+    folder_to_attachment = os.path.join(folder_path, relative_attachment_path)
+    create_folder_or_pass_if_created(folder_to_attachment)
+    for part in message.iter_attachments():
+        if part.get_content_type() == 'application/octet-stream':
+            attach_name = part.get_filename()
+
+            absolute_path = os.path.join(folder_to_attachment, attach_name)
+            relative_path = os.path.relpath(absolute_path, folder_path)
+            attach_name_and_path[attach_name] = relative_path
+
+            with open(absolute_path, 'wb') as fb:
+                fb.write(part.get_payload(decode=True))
+
+    logging.debug(f'Parse and save {len(attach_name_and_path)} attachments')
+    return attach_name_and_path
+
+
 def create_folder_or_pass_if_created(folder_path):
     try:
+        print(folder_path)
         os.mkdir(folder_path)
         logging.debug(f'Create folder "{folder_path}"')
     except FileExistsError:
@@ -96,6 +118,7 @@ def convert_eml_to_html(eml_file, out_folder):
     create_folder_or_pass_if_created(folder_path)
 
     images_id_and_path = parse_images_and_save(msg, folder_path, PATH_IMAGE)
+    attachments = parse_attachment_and_save(msg, folder_path, PATH_ATTACH)
 
     html = parse_html(msg)
     html_with_img = replace_link_to_image(html, images_id_and_path)
