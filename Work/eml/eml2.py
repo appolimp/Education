@@ -50,18 +50,25 @@ def parse_images_and_save(message, folder_path, relative_image_path):
     create_folder_or_pass_if_created(folder_to_image)
 
     for part in message.walk():
-        if part.get_content_type() == 'image/png':
-            image_name = part.get_filename()
-
-            absolute_path = os.path.join(folder_to_image, image_name)  # Для сохранения изображения
-            relative_path = os.path.relpath(absolute_path, folder_path)  # Для замены в html
+        if part.get_content_type() == 'image/png' and part["Content-ID"]:  # игнорируем изображения-вложения
+            _, relative_path = write_part(part, folder_path, folder_to_image)
             img_id_and_path[part["Content-ID"][1:-1]] = relative_path  # Для замены в html
-
-            with open(absolute_path, 'wb') as fb:
-                fb.write(part.get_payload(decode=True))
 
     logging.debug(f'Parse and save {len(img_id_and_path)} images')
     return img_id_and_path
+
+
+def write_part(part, work_directory, folder_to_save):
+    file_name = part.get_filename()
+
+    absolute_path = os.path.join(folder_to_save, file_name)
+    relative_path = os.path.relpath(absolute_path, work_directory)  # Для связи c html
+
+    with open(absolute_path, 'wb') as fb:
+        fb.write(part.get_payload(decode=True))
+
+    logging.debug(f'File "{file_name}" was recorded')
+    return file_name, relative_path
 
 
 def parse_attachment_and_save(message, folder_path, relative_attachment_path):
@@ -70,15 +77,13 @@ def parse_attachment_and_save(message, folder_path, relative_attachment_path):
     folder_to_attachment = os.path.join(folder_path, relative_attachment_path)
     create_folder_or_pass_if_created(folder_to_attachment)
     for part in message.iter_attachments():
-        if part.get_content_type() == 'application/octet-stream':
-            attach_name = part.get_filename()
+        if part.get_content_type() == 'application/octet-stream':  # вложение
+            name, relative_path = write_part(part, folder_path, folder_to_attachment)
+            attach_name_and_path[name] = relative_path
 
-            absolute_path = os.path.join(folder_to_attachment, attach_name)
-            relative_path = os.path.relpath(absolute_path, folder_path)
-            attach_name_and_path[attach_name] = relative_path
-
-            with open(absolute_path, 'wb') as fb:
-                fb.write(part.get_payload(decode=True))
+        elif part.get_content_type() == 'image/png' and part["Content-ID"] is None:  # Вложенное изображение
+            name, relative_path = write_part(part, folder_path, folder_to_attachment)
+            attach_name_and_path[name] = relative_path
 
     logging.debug(f'Parse and save {len(attach_name_and_path)} attachments')
     return attach_name_and_path
@@ -86,7 +91,6 @@ def parse_attachment_and_save(message, folder_path, relative_attachment_path):
 
 def create_folder_or_pass_if_created(folder_path):
     try:
-        print(folder_path)
         os.mkdir(folder_path)
         logging.debug(f'Create folder "{folder_path}"')
     except FileExistsError:
