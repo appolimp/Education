@@ -4,7 +4,7 @@ import logging
 import email.parser
 import email.policy
 import datetime
-
+import shutil
 
 PATH = 'data\\'
 PATH_OUT = 'out'
@@ -22,9 +22,9 @@ def create_name_for_folder(data_str, subject):
     """
 
     date = datetime.datetime.strptime(data_str, '%a, %d %b %Y %X %z')
-    name = f'{date.date()}_{subject}'
+    name = '{}_{}'.format(date.date(), subject)
 
-    logging.debug(f'Create name for folder: "{name}"')
+    logging.debug('Create name for folder: "{}"'.format(name))
     return name
 
 
@@ -51,7 +51,7 @@ def parse_images_and_save(message, folder_path, relative_image_path):
             _, relative_path = write_part(part, folder_path, folder_to_image)
             img_id_and_path[part["Content-ID"][1:-1]] = relative_path  # Для замены в html
 
-    logging.debug(f'Parse and save {len(img_id_and_path)} images')
+    logging.debug('Parse and save {} images'.format(len(img_id_and_path)))
     return img_id_and_path
 
 
@@ -64,7 +64,7 @@ def write_part(part, work_directory, folder_to_save):
     with open(absolute_path, 'wb') as fb:
         fb.write(part.get_payload(decode=True))
 
-    logging.debug(f'File "{file_name}" was recorded')
+    logging.debug('File "{}" was recorded'.format(file_name))
     return file_name, relative_path
 
 
@@ -82,14 +82,14 @@ def parse_attachment_and_save(message, folder_path, relative_attachment_path):
             name, relative_path = write_part(part, folder_path, folder_to_attachment)
             attach_name_and_path[name] = relative_path
 
-    logging.debug(f'Parse and save {len(attach_name_and_path)} attachments')
+    logging.debug('Parse and save {} attachments'.format(len(attach_name_and_path)))
     return attach_name_and_path
 
 
 def create_folder_or_pass_if_created(folder_path):
     try:
         os.mkdir(folder_path)
-        logging.debug(f'Create folder "{folder_path}"')
+        logging.debug('Create folder "{}"'.format(folder_path))
     except FileExistsError:
         pass
 
@@ -99,7 +99,7 @@ def parse_html(message):
         if part.get_content_type() == 'text/html':
             my_html = part.get_payload(decode=True)
 
-            logging.debug(f'Get html')
+            logging.debug('Get html')
             return my_html
 
 
@@ -111,12 +111,15 @@ def replace_link_to_image(html, images_id_and_path):
     return html
 
 
-def create_info_about_attachments(attachments):
-    added_lines = [b'<DIV><FONT size=4 face=Arial>Attachments:</FONT></DIV>', b'<ol>']
-    for attachment_name in attachments:
-        added_lines.append(b'	<li>' + attachment_name.encode() + b'</li>')
+def create_list(title, lines, sign='numbers'):
+    added_lines = [b'<DIV><FONT size=4 face=Arial>' + title.encode() + b'</FONT></DIV>',
+                   b'<ol>' if sign == 'numbers' else b'<ul>']
 
-    added_lines.extend([b'</ol>', b'<HR>'])
+    for line in lines:
+        added_lines.append(b'	<li>' + line.replace('<', '&lt;').encode('koi8-r') + b'</li>')  # &lt; - Обертка '<'
+
+    added_lines.extend([b'</ol>' if sign == 'numbers' else b'</ul>',
+                        b'<HR>'])  # горизонтальная линия
 
     return added_lines
 
@@ -125,8 +128,8 @@ def add_to_top(html, added_lines):
     lines = html.split(b'\n')
     number_line_start_with = next(i for i, line in enumerate(lines) if line.startswith(b'<BODY'))
     result = lines[:number_line_start_with + 1] + added_lines + lines[number_line_start_with + 1:]
-
-    logging.debug(f'Add {len(added_lines)} lines to top')
+    import shutil
+    logging.debug('Add {} lines to top'.format(len(added_lines)))
     return b'\n'.join(result)
 
 
@@ -146,16 +149,25 @@ def convert_eml_to_html(eml_file, out_folder):
         html = replace_link_to_image(html, images_id_and_path)
 
     if attachments:
-        info_about_attachments = create_info_about_attachments(attachments)
+        info_about_attachments = create_list('Attachments:', attachments)
         html = add_to_top(html, info_about_attachments)
-    
+
+    info_about_letters = create_list('Information about letter:', ['Subject: ' + msg.get("Subject", ""),
+                                                                   'Date: ' + msg.get("Date", ""),
+                                                                   'From: ' + msg.get("From", ""),
+                                                                   'To: ' + msg.get("To", ""),
+                                                                   'Cc: ' + msg.get("Cc", ""),
+                                                                   'Priority: ' + msg.get("X-MSMail-Priority", ""),
+                                                                   ], sign='points')
+    html = add_to_top(html, info_about_letters)
 
     html_name = msg['Subject']
     html_path = os.path.join(folder_path, html_name + '.html')
     with open(html_path, 'wb') as f:
         f.write(html)
 
-    logging.debug(f'OK. Convert eml to html [{eml_file} --> {html_path}]')
+    logging.debug('OK. Convert eml to html [{} --> {}]'.format(eml_file, html_path))
+    return folder_path
 
 
 def main():
@@ -164,9 +176,10 @@ def main():
     create_folder_or_pass_if_created(out_folder)
 
     for eml_file in eml_files:
-        convert_eml_to_html(eml_file, out_folder)
+        file_folder = convert_eml_to_html(eml_file, out_folder)
+        shutil.copy2(eml_file, file_folder)
 
-    logging.info(f'Convert {len(eml_files)} eml files to html')
+    logging.info('Convert {} eml files to html'.format(len(eml_files)))
 
 
 if __name__ == '__main__':
