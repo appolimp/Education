@@ -133,8 +133,52 @@ def add_to_top(html, added_lines):
     return b'\n'.join(result)
 
 
+def change_html(html, images_id_and_path, attachments, info_about_letters):
+    """
+
+    :param html:
+    :type html:
+    :param images_id_and_path:
+    :type images_id_and_path:
+    :param attachments:
+    :type attachments:
+    :param info_about_letters:
+    :type info_about_letters:
+    :return:
+    :rtype:
+    """
+
+    if images_id_and_path:
+        html = replace_link_to_image(html, images_id_and_path)
+
+    if attachments:
+        info_about_attachments = create_list('Attachments:', attachments)
+        html = add_to_top(html, info_about_attachments)
+
+    if info_about_letters:
+        info_about_letters = create_list('Information about letter:', info_about_letters, sign='points')
+        html = add_to_top(html, info_about_letters)
+
+    return html
+
+
+def write_html(html, folder_path, name):
+    html_path = os.path.join(folder_path, name)
+    with open(html_path, 'wb') as f:
+        f.write(html)
+
+    return html_path
+
+
 def convert_eml_to_html(eml_file, out_folder):
     msg = parsing_file(eml_file)
+    info_about_letters = ['Subject: ' + msg.get("Subject", ""),
+                          'Date: ' + msg.get("Date", ""),
+                          'From: ' + msg.get("From", ""),
+                          'To: ' + msg.get("To", ""),
+                          'Cc: ' + msg.get("Cc", ""),
+                          'Priority: ' + msg.get("X-MSMail-Priority", ""),
+                          ]
 
     folder_name = create_name_for_folder(msg['Date'], msg['Subject'])
     folder_path = os.path.join(out_folder, folder_name)
@@ -144,30 +188,11 @@ def convert_eml_to_html(eml_file, out_folder):
     attachments = parse_attachment_and_save(msg, folder_path, PATH_ATTACH)
 
     html = parse_html(msg)
-
-    if images_id_and_path:
-        html = replace_link_to_image(html, images_id_and_path)
-
-    if attachments:
-        info_about_attachments = create_list('Attachments:', attachments)
-        html = add_to_top(html, info_about_attachments)
-
-    info_about_letters = create_list('Information about letter:', ['Subject: ' + msg.get("Subject", ""),
-                                                                   'Date: ' + msg.get("Date", ""),
-                                                                   'From: ' + msg.get("From", ""),
-                                                                   'To: ' + msg.get("To", ""),
-                                                                   'Cc: ' + msg.get("Cc", ""),
-                                                                   'Priority: ' + msg.get("X-MSMail-Priority", ""),
-                                                                   ], sign='points')
-    html = add_to_top(html, info_about_letters)
-
-    html_name = msg['Subject']
-    html_path = os.path.join(folder_path, html_name + '.html')
-    with open(html_path, 'wb') as f:
-        f.write(html)
+    html = change_html(html, images_id_and_path, attachments, info_about_letters)
+    html_path = write_html(html, folder_path, name=msg['Subject'] + '.html')
 
     logging.debug('OK. Convert eml to html [{} --> {}]'.format(eml_file, html_path))
-    return folder_path
+    return folder_path, html_path
 
 
 def main():
@@ -176,7 +201,7 @@ def main():
     create_folder_or_pass_if_created(out_folder)
 
     for eml_file in eml_files:
-        file_folder = convert_eml_to_html(eml_file, out_folder)
+        file_folder, html_path = convert_eml_to_html(eml_file, out_folder)
         shutil.copy2(eml_file, file_folder)
 
     logging.info('Convert {} eml files to html'.format(len(eml_files)))
