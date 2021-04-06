@@ -1,0 +1,15 @@
+soil_type;f_kPa;beta_i
+sand;0,00;0,75
+sand;20;0,75
+sand;40;0,6
+sand;60;0,55
+sand;80;0,5
+sand;100;0,45
+sand;120;0,4
+clay;0,00;1,00
+clay;20;1
+clay;40;0,75
+clay;60;0,6
+clay;80;0,45
+clay;100;0,4
+clay;120;0,3
