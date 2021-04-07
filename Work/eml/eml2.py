@@ -26,7 +26,6 @@ import re
 import shutil
 import unicodedata
 
-
 # ###################### Сторонние библиотеки ###############################
 import pdfkit  # сторонняя библиотека. должна быть в текущей папке
 
@@ -144,7 +143,7 @@ def write_html(html, html_path):
 def create_pdf(file_path):
     config = pdfkit.configuration(wkhtmltopdf=PATH_WKHTMLTOPDF)  # чтобы не добавлять программу wkhtmltopdf в PATH
     wkhtmltopdf_options = {'enable-local-file-access': None,  # Для доступа к локальным файлам
-                           'quiet': '',   # Подавление логирования
+                           'quiet': '',  # Подавление логирования
                            }
 
     pdf_path = os.path.splitext(file_path)[0] + '.pdf'
@@ -153,22 +152,14 @@ def create_pdf(file_path):
 
 
 def rename_folder(folder_path, attachments):
-    def remove_folder(_path):
-        for i in os.listdir(_path):
-            _i_path = os.path.join(_path, i)
-            if os.path.isfile(_i_path):
-                os.remove(_i_path)
-            elif os.path.isdir(_i_path):
-                remove_folder(_i_path)
-        os.rmdir(_path)  # Now the directory is empty of files
-
-    root, folder_name = os.path.split(folder_path)
+    folder_path_long = "\\\\?\\" + os.path.abspath(folder_path)  # в win 7 нужно обрабатывать длинные пути (>260)
+    root, folder_name = os.path.split(folder_path_long)
 
     new_name = make_file_name_valid(folder_name + ' -- ' + ', '.join(attachments))
     new_path = os.path.join(root, new_name)
 
     if os.path.exists(new_path):
-        remove_folder(new_path)  # удалить рекурсивно
+        shutil.rmtree(new_path)
 
     os.rename(folder_path, new_path)
     logging.debug('Add attachments to name folder: "{}"'.format(new_path))
