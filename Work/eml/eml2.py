@@ -95,7 +95,6 @@ def create_name(data_str, subject, code_building, file_type=''):
     """
 
     date = datetime.datetime.strptime(data_str, '%a, %d %b %Y %X %z')
-    # name = '{}'.format(subject)
     name = ' '.join(str(i) for i in [date.date(), file_type, code_building, subject] if i)
     valid_name = make_file_name_valid(name)
 
@@ -120,7 +119,7 @@ def get_or_create_folder_for_save(file_path, out_folder_name, folder_name):
     folder_for_save = os.path.join(folder_out, folder_name)
     create_folder_or_pass_if_created(folder_for_save)
 
-    logging.debug('Get or create folder for save for file: [{} --> {}]'.format(file_path, folder_for_save))
+    logging.debug('Get or create folder for file: [{} --> {}]'.format(file_path, folder_for_save))
     return folder_for_save
 
 
@@ -143,7 +142,7 @@ def write_html(html, html_path):
 
 
 def create_pdf(file_path):
-    config = pdfkit.configuration(wkhtmltopdf=PATH_WKHTMLTOPDF)  # чтобы не добавлять программу WKHTMLTOPDF в PATH
+    config = pdfkit.configuration(wkhtmltopdf=PATH_WKHTMLTOPDF)  # чтобы не добавлять программу wkhtmltopdf в PATH
     wkhtmltopdf_options = {'enable-local-file-access': None,  # Для доступа к локальным файлам
                            'quiet': '',   # Подавление логирования
                            }
@@ -159,7 +158,7 @@ def rename_folder(folder_path, attachments):
     new_name = make_file_name_valid(folder_name + ' -- ' + ', '.join(attachments))
     new_path = os.path.join(root, new_name)
     if os.path.isdir(new_path):
-        shutil.rmtree(new_path)
+        shutil.rmtree(new_path)  # удалить рекурсивно
 
     os.rename(folder_path, new_path)
     logging.debug('Add attachments to name folder: "{}"'.format(new_path))
@@ -225,6 +224,7 @@ def get_html(message):
 # ###################### Main logic #########################################
 def find_building_code_in_message(html, title, default='UNKNOWN'):
     """
+    Пытается найти код здания по максимальному вхождения похожих слов (references) в html и заголовок
 
     :param title: заголовок
     :type title: str
@@ -253,6 +253,7 @@ def find_building_code_in_message(html, title, default='UNKNOWN'):
 
 def change_html(html, images_id_and_path, attachments, info_about_letters):
     """
+    Заменяем ссылки на изображения, добавляем информацию о вложениях и письме
 
     :type html: bytes
     :param images_id_and_path: словарь из cid сообщений и относительных путей к нему, для замены в html
@@ -285,6 +286,8 @@ def change_html(html, images_id_and_path, attachments, info_about_letters):
     def add_to_top(html_, added_lines):
         lines = html_.split(b'\n')
         number_line_start_with = next(i for i, line in enumerate(lines) if line.lower().startswith(b'<body'))
+        # FIXME упадет если не найдет. но странно если в html нет body
+
         result = lines[:number_line_start_with + 1] + added_lines + lines[number_line_start_with + 1:]
         logging.debug('Add {} lines to top'.format(len(added_lines)))
         return b'\n'.join(result)
