@@ -153,12 +153,22 @@ def create_pdf(file_path):
 
 
 def rename_folder(folder_path, attachments):
+    def remove_folder(_path):
+        for i in os.listdir(_path):
+            _i_path = os.path.join(_path, i)
+            if os.path.isfile(_i_path):
+                os.remove(_i_path)
+            elif os.path.isdir(_i_path):
+                remove_folder(_i_path)
+        os.rmdir(_path)  # Now the directory is empty of files
+
     root, folder_name = os.path.split(folder_path)
 
     new_name = make_file_name_valid(folder_name + ' -- ' + ', '.join(attachments))
     new_path = os.path.join(root, new_name)
+
     if os.path.exists(new_path):
-        shutil.rmtree(new_path)  # удалить рекурсивно
+        remove_folder(new_path)  # удалить рекурсивно
 
     os.rename(folder_path, new_path)
     logging.debug('Add attachments to name folder: "{}"'.format(new_path))
