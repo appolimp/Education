@@ -153,6 +153,18 @@ def create_pdf(file_path):
     logging.debug('Create pdf: "{}"'.format(pdf_path))
 
 
+def rename_folder(folder_path, attachments):
+    root, folder_name = os.path.split(folder_path)
+
+    new_name = make_file_name_valid(folder_name + ' -- ' + ', '.join(attachments))
+    new_path = os.path.join(root, new_name)
+    if os.path.isdir(new_path):
+        shutil.rmtree(new_path)
+
+    os.rename(folder_path, new_path)
+    logging.debug('Add attachments to name folder: "{}"'.format(new_path))
+
+
 # ###################### Parsing ############################################
 def get_email_message_by_path(eml_path):
     """
@@ -187,7 +199,7 @@ def parse_attachment_and_save(message, folder_for_save):
 
             if name.endswith('.eml'):
                 eml_path = os.path.join(folder_for_save, name)
-                # convert_eml_to_html(eml_path)
+                convert_eml_to_html(eml_path)
 
             attach_name_and_path.append(name)
 
@@ -211,6 +223,34 @@ def get_html(message):
 
 
 # ###################### Main logic #########################################
+def find_building_code_in_message(html, title, default='UNKNOWN'):
+    """
+
+    :param title: заголовок
+    :type title: str
+    :param html: тело письма
+    :type html: bytearray
+    :param default: значение по умолчанию
+    :type default: str
+    :return: Найденное значение или значение по умолчанию
+    :rtype: str
+    """
+
+    text = html.decode('koi8-r').lower() + title.lower()  # декодируем для работы поиска
+
+    code_in_and_counts = {}
+    for code, references in CODE_AND_REFERENCES.items():
+        count_entry = sum(text.count(reference) for reference in references)
+        if count_entry:
+            code_in_and_counts[code] = sum(text.count(reference) for reference in references)
+
+    code_building = max(code_in_and_counts, key=lambda x: code_in_and_counts[x], default=default)
+    logging.debug('Find code building as "{}"'.format(code_building) if code_building != default else
+                  'Error with find code building')
+
+    return code_building
+
+
 def change_html(html, images_id_and_path, attachments, info_about_letters):
     """
 
@@ -263,42 +303,20 @@ def change_html(html, images_id_and_path, attachments, info_about_letters):
     return html
 
 
-def find_building_code_in_message(html, title, default='UNKNOWN'):
-    """
-
-    :param title: заголовок
-    :type title: str
-    :param html: тело письма
-    :type html: bytearray
-    :param default: значение по умолчанию
-    :type default: str
-    :return: Найденное значение или значение по умолчанию
-    :rtype: str
-    """
-
-    text = html.decode('koi8-r').lower() + title.lower()  # декодируем для работы поиска
-
-    code_in_and_counts = {}
-    for code, references in CODE_AND_REFERENCES.items():
-        count_entry = sum(text.count(reference) for reference in references)
-        if count_entry:
-            code_in_and_counts[code] = sum(text.count(reference) for reference in references)
-
-    code_building = max(code_in_and_counts, key=lambda x: code_in_and_counts[x], default=default)
-    logging.debug('Find code building as "{}"'.format(code_building) if code_building != default else
-                  'Error with find code building')
-
-    return code_building
-
-
 def convert_eml_to_html(eml_path):
+    """
+
+    :param eml_path:
+    :type eml_path:
+    :return:
+    :rtype:
+    """
+
+    logging.debug('=== Start with file: "{}"'.format(eml_path))
+
+    # Шаг 1. Получение Message и html
     msg = get_email_message_by_path(eml_path)
     html = get_html(msg)
-
-    code_building = find_building_code_in_message(html, msg['Subject'])
-    folder_name = create_name(msg['Date'], msg['Subject'], code_building)
-    folder_for_save = get_or_create_folder_for_save(eml_path, PATH_OUT, folder_name)
-
     info_about_letters = ['Subject: ' + msg.get("Subject", ""),
                           'Date: ' + msg.get("Date", ""),
                           'From: ' + msg.get("From", ""),
@@ -307,33 +325,35 @@ def convert_eml_to_html(eml_path):
                           'Priority: ' + msg.get("X-MSMail-Priority", ""),
                           ]
 
+    # Шаг 1. Пытаемся найти код здания
+    code_building = find_building_code_in_message(html, msg['Subject'])
+
+    # Шаг 2. Формируем имя и создаем папку для сохранения всей информации
+    folder_name = create_name(msg['Date'], msg['Subject'], code_building)
+    folder_for_save = get_or_create_folder_for_save(eml_path, PATH_OUT, folder_name)
+
+    # Шаг 3. Parse и сохраняем картинки и вложения
     images_id_and_path = parse_images_and_save(msg, folder_for_save)
     attachments = parse_attachment_and_save(msg, folder_for_save)
+
+    # Шаг 4. Заменяем ссылки на изображения, добавляем информацию о вложениях и письме
     html_correct = change_html(html, images_id_and_path, attachments, info_about_letters)
 
+    # Шаг 5. Формируем имя для .html и сохраняем
     html_name = create_name(msg['Date'], msg['Subject'], code_building, file_type='Почта') + '.html'
     html_path = os.path.join(folder_for_save, html_name)
     write_html(html_correct, html_path)
 
+    # Шаг 6. Копируем исходный eml в папку, И создаем pdf из html
     shutil.copy2(eml_path, folder_for_save)  # копирует исходный eml в папку. Мб переместить?
     create_pdf(html_path)
 
     logging.info('OK. Convert eml to html ["{}" --> "{}"]'.format(eml_path, html_path))
 
+    # Шаг 7. Костыль. Добавляем в имя папки имена вложений
     if attachments:
-        rename_folder(folder_for_save, attachments)  # костыль, так как в имя нужно добавить имена вложений
-        # а у меня сначала создается папка, а потом в нее все записывается
-
-
-def rename_folder(folder_path, attachments):
-    root, folder_name = os.path.split(folder_path)
-
-    new_name = make_file_name_valid(folder_name + ' -- ' + ', '.join(attachments))
-    new_path = os.path.join(root, new_name)
-    if os.path.isdir(new_path):
-        shutil.rmtree(new_path)
-
-    os.rename(folder_path, new_path)
+        # костыль, так как у меня сначала создается папка, а потом в нее все записывается
+        rename_folder(folder_for_save, attachments)
 
 
 def main():
