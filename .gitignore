@@ -10,3 +10,4 @@ Work/eml/pdfkit/__pycache__/__init__.cpython-38.pyc
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
+*.pyc
