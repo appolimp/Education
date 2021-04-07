@@ -14,6 +14,9 @@
     * pdfkit - должна быть в текущей папке, если не установлена на компьютере
     * wkhtmltopdf - должна быть в текущей папке, если не установлена на компьютере
         (ссылка на установку https://wkhtmltopdf.org/downloads.html так еже устновочник есть в папке)
+
+Документация:
+https://docs.google.com/document/d/1_HbTB98g7Wt0plE8mKnO8IBN7iNb8gBSzRABiS8ZKdE/edit?usp=sharing
 """
 
 import datetime
