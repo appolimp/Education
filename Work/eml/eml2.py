@@ -34,7 +34,7 @@ import pdfkit  # сторонняя библиотека. должна быть 
 PATH_WKHTMLTOPDF = r'wkhtmltopdf/bin/wkhtmltopdf.exe'  # Чтобы не добавлять программу в PATH
 
 # ###################### Input ##############################################
-PATH = 'data\\'  # Папка с .eml файлами, вложенные папки скрипт не просматривает
+PATH = 'data'  # Папка с .eml файлами, вложенные папки скрипт не просматривает
 
 # ###################### Constants ##########################################
 PATH_OUT = 'out'
@@ -361,7 +361,8 @@ def convert_eml_to_html(eml_path):
 
 
 def main():
-    eml_files = glob.glob(PATH + '*.eml')  # get all .eml files in a list
+    path = PATH if PATH.endswith('\\') else PATH + '\\'
+    eml_files = glob.glob(path + '*.eml')  # get all .eml files in a list
     for eml_file in eml_files:
         convert_eml_to_html(eml_file)
 
