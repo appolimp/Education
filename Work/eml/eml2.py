@@ -361,7 +361,7 @@ def convert_eml_to_html(eml_path):
 
 
 def main():
-    path = PATH if PATH.endswith('\\') else PATH + '\\'
+    path = PATH if PATH.endswith('\\') else PATH + '\\'  # для корректной работы glob
     eml_files = glob.glob(path + '*.eml')  # get all .eml files in a list
     for eml_file in eml_files:
         convert_eml_to_html(eml_file)
