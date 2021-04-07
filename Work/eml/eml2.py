@@ -370,11 +370,12 @@ def main():
 # ###################### Start ##############################################
 if __name__ == '__main__':
     logging.basicConfig(
-        filename=None, level=logging.DEBUG,
+        filename=None, level=logging.INFO,
         format='[%(asctime)s] %(levelname).1s: %(message)s',
         datefmt='%H:%M:%S')
     try:
         main()
+        input()
     except Exception as err:
         logging.error(err)
         raise
