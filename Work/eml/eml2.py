@@ -40,8 +40,6 @@ PATH = 'data\\'  # Папка с .eml файлами, вложенные пап�
 
 # ###################### Constants ##########################################
 PATH_OUT = 'out'
-PATH_IMAGE = 'img'
-PATH_ATTACH = 'attach'
 
 
 # ###################### Folder and Files ###################################
@@ -109,17 +107,15 @@ def get_or_create_folder_for_save(file_path, out_folder_name, folder_name):
     return folder_for_save
 
 
-def write_part(part, folder_for_save, folder_for_part):
+def write_part(part, folder_for_save):
     file_name = make_file_name_valid(part.get_filename())
+    file_path = os.path.join(folder_for_save, file_name)
 
-    absolute_path = os.path.join(folder_for_part, file_name)
-    relative_path = os.path.relpath(absolute_path, folder_for_save)  # Для связи c html
-
-    with open(absolute_path, 'wb') as fb:
+    with open(file_path, 'wb') as fb:
         fb.write(part.get_payload(decode=True))
 
     logging.debug('File "{}" was recorded'.format(file_name))
-    return file_name, relative_path
+    return file_name
 
 
 def write_html(html, html_path):
@@ -151,38 +147,34 @@ def get_email_message_by_path(eml_path):
         return msg
 
 
-def parse_images_and_save(message, folder_for_save, folder_image_name):
+def parse_images_and_save(message, folder_for_save):
     img_id_and_path = {}
-
-    folder_to_image = os.path.join(folder_for_save, folder_image_name)
-    create_folder_or_pass_if_created(folder_to_image)
 
     for part in message.walk():
         if part.get_content_type() == 'image/png' and part["Content-ID"]:  # игнорируем изображения-вложения
-            _, relative_path = write_part(part, folder_for_save, folder_to_image)
-            img_id_and_path[part["Content-ID"][1:-1]] = relative_path  # Для замены в html
+            name = write_part(part, folder_for_save)
+            img_id_and_path[part["Content-ID"][1:-1]] = name  # Для замены в html
 
     logging.debug('Parse and save {} images'.format(len(img_id_and_path)))
     return img_id_and_path
 
 
-def parse_attachment_and_save(message, folder_for_save, folder_attachment_name):
-    attach_name_and_path = {}
-
-    folder_to_attachment = os.path.join(folder_for_save, folder_attachment_name)
-    create_folder_or_pass_if_created(folder_to_attachment)
+def parse_attachment_and_save(message, folder_for_save):
+    attach_name_and_path = []
 
     for part in message.iter_attachments():
         if part.get_content_type() == 'application/octet-stream':  # Вложения
-            name, relative_path = write_part(part, folder_for_save, folder_to_attachment)
+            name = write_part(part, folder_for_save)
+
             if name.endswith('.eml'):
-                abs_path = os.path.join(folder_to_attachment, name)
-                convert_eml_to_html(abs_path)
-            attach_name_and_path[name] = relative_path
+                eml_path = os.path.join(folder_for_save, name)
+                convert_eml_to_html(eml_path)
+
+            attach_name_and_path.append(name)
 
         elif part.get_content_type() == 'image/png' and part["Content-ID"] is None:  # Вложенное изображение
-            name, relative_path = write_part(part, folder_for_save, folder_to_attachment)
-            attach_name_and_path[name] = relative_path
+            name = write_part(part, folder_for_save)
+            attach_name_and_path.append(name)
 
     logging.debug('Parse and save {} attachments'.format(len(attach_name_and_path)))
     return attach_name_and_path
@@ -266,8 +258,8 @@ def convert_eml_to_html(eml_path):
                           'Priority: ' + msg.get("X-MSMail-Priority", ""),
                           ]
 
-    images_id_and_path = parse_images_and_save(msg, folder_for_save, PATH_IMAGE)
-    attachments = parse_attachment_and_save(msg, folder_for_save, PATH_ATTACH)
+    images_id_and_path = parse_images_and_save(msg, folder_for_save)
+    attachments = parse_attachment_and_save(msg, folder_for_save)
 
     html = get_html(msg)
     html = change_html(html, images_id_and_path, attachments, info_about_letters)
