@@ -31,15 +31,28 @@ import unicodedata
 import pdfkit  # сторонняя библиотека. должна быть в текущей папке
 
 # Необходимо установить программу wkhtmltopdf (в папке установочник или ссылка в описании выше)
+# TODO возможно не нужно и ссылки достаточно
 PATH_WKHTMLTOPDF = r'wkhtmltopdf/bin/wkhtmltopdf.exe'  # Чтобы не добавлять программу в PATH
-
 
 # ###################### Input ##############################################
 PATH = 'data\\'  # Папка с .eml файлами, вложенные папки скрипт не просматривает
 
-
 # ###################### Constants ##########################################
 PATH_OUT = 'out'
+
+CODE_AND_REFERENCES = {
+    'NRT2': ['ратуша'],
+    'SevKab': ['лср', 'севкабель'],
+    'PETR3': ['setl', 'петровский'],
+    'NOVOALEX': ['speech', 'новоалексеевская'],
+    'LEN34': ['ленинградский', 'ленинградка'],
+    'KJV26': ['кожевенная'],
+    'GR9': ['графский'],
+    'ChR41': ['черная речка'],
+    'CHAP': ['чаплыгина'],
+    'BAR4': ['барочная', 'rbi'],
+    'VO20': ['20-я линия'],
+}
 
 
 # ###################### Folder and Files ###################################
@@ -61,6 +74,7 @@ def make_file_name_valid(file_name, repl='', empty='empty_name'):
     while name.endswith('.'):
         name = name[:-1]
 
+    name = name[:220]  # ограничение по максимальной длине. максимум 249 для папки. взял с запасом
     name = name if name else empty
 
     if name != file_name:
@@ -69,17 +83,20 @@ def make_file_name_valid(file_name, repl='', empty='empty_name'):
     return name
 
 
-def create_name_for_folder(data_str, subject):
+def create_name(data_str, subject, code_building, file_type=''):
     """
 
     :param data_str:
     :type data_str: str
     :type subject: str
+    :type code_building:
+    :type file_type:
     :rtype: str
     """
 
     date = datetime.datetime.strptime(data_str, '%a, %d %b %Y %X %z')
-    name = '{}_{}'.format(date.date(), subject)
+    # name = '{}'.format(subject)
+    name = ' '.join(str(i) for i in [date.date(), file_type, code_building, subject] if i)
     valid_name = make_file_name_valid(name)
 
     logging.debug('Create name for folder: "{}"'.format(valid_name))
@@ -126,8 +143,10 @@ def write_html(html, html_path):
 
 
 def create_pdf(file_path):
-    config = pdfkit.configuration(wkhtmltopdf=PATH_WKHTMLTOPDF)
-    wkhtmltopdf_options = {'enable-local-file-access': None}  # Для доступа к локальным файлам
+    config = pdfkit.configuration(wkhtmltopdf=PATH_WKHTMLTOPDF)  # чтобы не добавлять программу WKHTMLTOPDF в PATH
+    wkhtmltopdf_options = {'enable-local-file-access': None,  # Для доступа к локальным файлам
+                           'quiet': '',   # Подавление логирования
+                           }
 
     pdf_path = os.path.splitext(file_path)[0] + '.pdf'
     pdfkit.from_file(file_path, pdf_path, configuration=config, options=wkhtmltopdf_options)
@@ -168,7 +187,7 @@ def parse_attachment_and_save(message, folder_for_save):
 
             if name.endswith('.eml'):
                 eml_path = os.path.join(folder_for_save, name)
-                convert_eml_to_html(eml_path)
+                # convert_eml_to_html(eml_path)
 
             attach_name_and_path.append(name)
 
@@ -244,10 +263,40 @@ def change_html(html, images_id_and_path, attachments, info_about_letters):
     return html
 
 
+def find_building_code_in_message(html, title, default='UNKNOWN'):
+    """
+
+    :param title: заголовок
+    :type title: str
+    :param html: тело письма
+    :type html: bytearray
+    :param default: значение по умолчанию
+    :type default: str
+    :return: Найденное значение или значение по умолчанию
+    :rtype: str
+    """
+
+    text = html.decode('koi8-r').lower() + title.lower()  # декодируем для работы поиска
+
+    code_in_and_counts = {}
+    for code, references in CODE_AND_REFERENCES.items():
+        count_entry = sum(text.count(reference) for reference in references)
+        if count_entry:
+            code_in_and_counts[code] = sum(text.count(reference) for reference in references)
+
+    code_building = max(code_in_and_counts, key=lambda x: code_in_and_counts[x], default=default)
+    logging.debug('Find code building as "{}"'.format(code_building) if code_building != default else
+                  'Error with find code building')
+
+    return code_building
+
+
 def convert_eml_to_html(eml_path):
     msg = get_email_message_by_path(eml_path)
+    html = get_html(msg)
 
-    folder_name = create_name_for_folder(msg['Date'], msg['Subject'])
+    code_building = find_building_code_in_message(html, msg['Subject'])
+    folder_name = create_name(msg['Date'], msg['Subject'], code_building)
     folder_for_save = get_or_create_folder_for_save(eml_path, PATH_OUT, folder_name)
 
     info_about_letters = ['Subject: ' + msg.get("Subject", ""),
@@ -260,18 +309,31 @@ def convert_eml_to_html(eml_path):
 
     images_id_and_path = parse_images_and_save(msg, folder_for_save)
     attachments = parse_attachment_and_save(msg, folder_for_save)
+    html_correct = change_html(html, images_id_and_path, attachments, info_about_letters)
 
-    html = get_html(msg)
-    html = change_html(html, images_id_and_path, attachments, info_about_letters)
-
-    html_name = msg['Subject'] + '.html'
-    html_path = os.path.join(folder_for_save, make_file_name_valid(html_name))
-    write_html(html, html_path)
+    html_name = create_name(msg['Date'], msg['Subject'], code_building, file_type='Почта') + '.html'
+    html_path = os.path.join(folder_for_save, html_name)
+    write_html(html_correct, html_path)
 
     shutil.copy2(eml_path, folder_for_save)  # копирует исходный eml в папку. Мб переместить?
     create_pdf(html_path)
 
     logging.info('OK. Convert eml to html ["{}" --> "{}"]'.format(eml_path, html_path))
+
+    if attachments:
+        rename_folder(folder_for_save, attachments)  # костыль, так как в имя нужно добавить имена вложений
+        # а у меня сначала создается папка, а потом в нее все записывается
+
+
+def rename_folder(folder_path, attachments):
+    root, folder_name = os.path.split(folder_path)
+
+    new_name = make_file_name_valid(folder_name + ' -- ' + ', '.join(attachments))
+    new_path = os.path.join(root, new_name)
+    if os.path.isdir(new_path):
+        shutil.rmtree(new_path)
+
+    os.rename(folder_path, new_path)
 
 
 def main():
