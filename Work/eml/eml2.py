@@ -1,13 +1,15 @@
-import glob
-import os.path
-import logging
+import datetime
 import email.parser
 import email.policy
-import datetime
+import glob
+import logging
+import os.path
+import re
 import shutil
 import unicodedata
-import re
 
+
+# ###################### Constants ##########################################
 PATH = 'data\\'
 PATH_OUT = 'out'
 PATH_IMAGE = 'img'
