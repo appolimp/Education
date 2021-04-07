@@ -157,7 +157,7 @@ def rename_folder(folder_path, attachments):
 
     new_name = make_file_name_valid(folder_name + ' -- ' + ', '.join(attachments))
     new_path = os.path.join(root, new_name)
-    if os.path.isdir(new_path):
+    if os.path.exists(new_path):
         shutil.rmtree(new_path)  # удалить рекурсивно
 
     os.rename(folder_path, new_path)
@@ -375,7 +375,8 @@ if __name__ == '__main__':
         datefmt='%H:%M:%S')
     try:
         main()
-        input()
     except Exception as err:
         logging.error(err)
         raise
+
+    input()
