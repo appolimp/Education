@@ -1,3 +1,21 @@
+# -*- coding: utf-8 -*-
+"""
+Скрипт для преобразования .eml файлов в pdf
+
+Итог:
+    * Рядом с .eml файлом создает папку out
+
+    * В папке out создает папку "<Дата>_<Тема>"
+    * В этой папке будет .eml, .html и .pdf а так же папки attach и img (вложения и картинки)
+
+# TODO кстати, папку img и html можно удалить
+
+Сторонние библиотеки:
+    * pdfkit - должна быть в текущей папке, если не установлена на компьютере
+    * wkhtmltopdf - должна быть в текущей папке, если не установлена на компьютере
+        (ссылка на установку https://wkhtmltopdf.org/downloads.html так еже устновочник есть в папке)
+"""
+
 import datetime
 import email.parser
 import email.policy
@@ -9,8 +27,18 @@ import shutil
 import unicodedata
 
 
+# ###################### Сторонние библиотеки ###############################
+import pdfkit  # сторонняя библиотека. должна быть в текущей папке
+
+# Необходимо установить программу wkhtmltopdf (в папке установочник или ссылка в описании выше)
+PATH_WKHTMLTOPDF = r'wkhtmltopdf/bin/wkhtmltopdf.exe'  # Чтобы не добавлять программу в PATH
+
+
+# ###################### Input ##############################################
+PATH = 'data\\'  # Папка с .eml файлами, вложенные папки скрипт не просматривает
+
+
 # ###################### Constants ##########################################
-PATH = 'data\\'
 PATH_OUT = 'out'
 PATH_IMAGE = 'img'
 PATH_ATTACH = 'attach'
@@ -94,12 +122,20 @@ def write_part(part, folder_for_save, folder_for_part):
     return file_name, relative_path
 
 
-def write_html(html, folder_path, name):
-    html_path = os.path.join(folder_path, make_file_name_valid(name))
+def write_html(html, html_path):
     with open(html_path, 'wb') as f:
         f.write(html)
 
     return html_path
+
+
+def create_pdf(file_path):
+    config = pdfkit.configuration(wkhtmltopdf=PATH_WKHTMLTOPDF)
+    wkhtmltopdf_options = {'enable-local-file-access': None}  # Для доступа к локальным файлам
+
+    pdf_path = os.path.splitext(file_path)[0] + '.pdf'
+    pdfkit.from_file(file_path, pdf_path, configuration=config, options=wkhtmltopdf_options)
+    logging.debug('Create pdf: "{}"'.format(pdf_path))
 
 
 # ###################### Parsing ############################################
@@ -237,11 +273,13 @@ def convert_eml_to_html(eml_path):
     html = change_html(html, images_id_and_path, attachments, info_about_letters)
 
     html_name = msg['Subject'] + '.html'
-    html_path = write_html(html, folder_for_save, name=html_name)
+    html_path = os.path.join(folder_for_save, make_file_name_valid(html_name))
+    write_html(html, html_path)
 
-    shutil.copy2(eml_path, folder_for_save)  # копируем исходных eml в папку. Мб переместить?
+    shutil.copy2(eml_path, folder_for_save)  # копирует исходный eml в папку. Мб переместить?
+    create_pdf(html_path)
 
-    logging.info('OK. Convert eml to html [{} --> {}]'.format(eml_path, html_path))
+    logging.info('OK. Convert eml to html ["{}" --> "{}"]'.format(eml_path, html_path))
 
 
 def main():
