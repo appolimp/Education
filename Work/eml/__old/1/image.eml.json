@@ -1,0 +1,186 @@
+{
+    "attachment": [
+        {
+            "filename": "Snipaste_2021-02-19_11-58-58.png",
+            "size": 13679,
+            "extension": "png",
+            "hash": {
+                "md5": "eb11ca0f6899a838f5e517022492508e",
+                "sha1": "68a2c2475345c20f0b188e8cf4673f3596995565",
+                "sha256": "1a940c6f19935adca113a2ebfbe0e8788c4ad4f0ad02ad2f6f28a76e66461d72",
+                "sha512": "1e600bdb55f78116693766aacf3e693863fd54ad0f56407f73bd9d0d1f9174392e850ddce4217e605c1c622d5ce5ad20df7ade9f1f17e3dbfedc412a6254c586"
+            },
+            "raw": null,
+            "content_header": {
+                "content-type": [
+                    "image/png; name=\"Snipaste_2021-02-19_11-58-58.png\""
+                ],
+                "content-transfer-encoding": [
+                    "base64"
+                ],
+                "content-id": [
+                    "<EA8134043F674690B4042C088F2FE0EA@egp.local>"
+                ]
+            }
+        },
+        {
+            "filename": "Snipaste_2021-02-12_22-58-45.png",
+            "size": 21573,
+            "extension": "png",
+            "hash": {
+                "md5": "c393d884a2e091c402e889609a5f4f74",
+                "sha1": "09f8535cb13c07bee02bc3a221409bad74bcc525",
+                "sha256": "8edac87f6417b49f3cab871d0de9da14e7bb583509ea1e61d5a3574aef5fa24c",
+                "sha512": "b690f6303de2362cbd2239c49cfa185ee34cecfe807983e2bf16f4d32ce38489f8dc0ff3920ec31e126b49fc1ff49101ee8760a7ecdf294b2884584018b54d2b"
+            },
+            "raw": null,
+            "content_header": {
+                "content-type": [
+                    "image/png; name=\"Snipaste_2021-02-12_22-58-45.png\""
+                ],
+                "content-transfer-encoding": [
+                    "base64"
+                ],
+                "content-id": [
+                    "<7714DCAFF5EF422FA0A731B333A9B435@egp.local>"
+                ]
+            }
+        },
+        {
+            "filename": "Snipaste_2021-02-12_15-57-24.png",
+            "size": 77631,
+            "extension": "png",
+            "hash": {
+                "md5": "56786d1dcab5c410b154c1544ccd2287",
+                "sha1": "3e5fc39ca4fa37505b8b7eeb33b53ee56ed675fe",
+                "sha256": "9e0b19c9ef4e1bd286b82b9bd648efee9787c0fe1de9eff67cd8111cfaf4095e",
+                "sha512": "6ec183345253b24ebd0d05896b0c4864700fb2e4a4d8bc877c15d0422a153e80244af13c51c0df17ec71ab7ac33a7a9a258157c689f33efd1d09c458e8997f3f"
+            },
+            "raw": null,
+            "content_header": {
+                "content-type": [
+                    "image/png; name=\"Snipaste_2021-02-12_15-57-24.png\""
+                ],
+                "content-transfer-encoding": [
+                    "base64"
+                ],
+                "content-id": [
+                    "<023BF0F78E26402A9C7B173009291E68@egp.local>"
+                ]
+            }
+        }
+    ],
+    "body": [
+        {
+            "email": [
+                "bazhenovad@egp.spb.ru"
+            ],
+            "domain": [
+                "egp.spb.ru"
+            ],
+            "content_header": {
+                "content-type": [
+                    "text/plain; charset=\"koi8-r\""
+                ],
+                "content-transfer-encoding": [
+                    "quoted-printable"
+                ]
+            },
+            "content": "\u0422\u0435\u043a\u0441\u0442 123\r\n\r\n\r\n\r\n\u0421 \u0443\u0432\u0430\u0436\u0435\u043d\u0438\u0435\u043c,\r\n\u0410\u043b\u0435\u043a\u0441\u0430\u043d\u0434\u0440 \u0411\u0430\u0436\u0435\u043d\u043e\u0432,\r\nBIM-\u043c\u0435\u043d\u0435\u0434\u0436\u0435\u0440\r\n\u0410\u041c \"\u0415\u0432\u0433\u0435\u043d\u0438\u0439 \u0413\u0435\u0440\u0430\u0441\u0438\u043c\u043e\u0432 \u0438 \u043f\u0430\u0440\u0442\u043d\u0435\u0440\u044b\",\r\n\u043c.\u0442. +7 911 7379400\r\nBazhenovAD@egp.spb.ru\r\n",
+            "content_type": "text/plain",
+            "hash": "c6472a41f76c3e5662f5fccd430549bee0dc80424b88be5372838710674b5623"
+        },
+        {
+            "email": [
+                "ea8134043f674690b4042c088f2fe0ea@egp.local",
+                "7714dcaff5ef422fa0a731b333a9b435@egp.local"
+            ],
+            "content_header": {
+                "content-type": [
+                    "text/html; charset=\"koi8-r\""
+                ],
+                "content-transfer-encoding": [
+                    "quoted-printable"
+                ]
+            },
+            "content": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0 Transitional//EN\">\r\n<HTML><HEAD>\r\n<META content=\"text/html; charset=koi8-r\" http-equiv=Content-Type>\r\n<META name=GENERATOR content=\"MSHTML 11.00.9600.17420\">\r\n<STYLE></STYLE>\r\n</HEAD>\r\n<BODY bgColor=#ffffff>\r\n<DIV><FONT size=2 face=Arial>\u0422\u0435\u043a\u0441\u0442 123</FONT></DIV>\r\n<DIV><FONT size=2 face=Arial><IMG \r\nsrc=\"cid:EA8134043F674690B4042C088F2FE0EA@egp.local\"></FONT></DIV>\r\n<DIV><IMG src=\"cid:7714DCAFF5EF422FA0A731B333A9B435@egp.local\"></DIV>\r\n<DIV><IMG src=\"cid:023BF0F78E26402A9C7B173009291E68@egp.local\"></DIV>\r\n<DIV><FONT size=2 face=Arial>\u0421 \u0443\u0432\u0430\u0436\u0435\u043d\u0438\u0435\u043c,<BR>\u0410\u043b\u0435\u043a\u0441\u0430\u043d\u0434\u0440 \r\n\u0411\u0430\u0436\u0435\u043d\u043e\u0432,<BR>BIM-\u043c\u0435\u043d\u0435\u0434\u0436\u0435\u0440<BR>\u0410\u041c \"\u0415\u0432\u0433\u0435\u043d\u0438\u0439 \u0413\u0435\u0440\u0430\u0441\u0438\u043c\u043e\u0432 \u0438 \u043f\u0430\u0440\u0442\u043d\u0435\u0440\u044b\",<BR>\u043c.\u0442. +7 911 \r\n7379400<BR><A \r\nhref=\"mailto:BazhenovAD@egp.spb.ru\">BazhenovAD@egp.spb.ru</A><BR></FONT></DIV></BODY></HTML>\r\n",
+            "content_type": "text/html",
+            "hash": "ee9a9d18077b12ade47cfcb0ad57116c92fc751e86c1e9865cf7990c6533c45d"
+        }
+    ],
+    "header": {
+        "subject": "Sample 2",
+        "from": "bazhenovad@egp.spb.ru",
+        "to": [
+            "glebovns@egp.spb.ru"
+        ],
+        "cc": [
+            "a11@yandex.ru"
+        ],
+        "date": "2021-03-02T16:33:19+03:00",
+        "received": [
+            {
+                "src": "from bazhenovad (bazhenovad.egp.local [192.168.255.216]) by 192.168.255.200 with aamail 0500; tue, 2 mar 2021 16:33:21 +0300",
+                "from": [
+                    "bazhenovad.egp.local",
+                    "192.168.255.216"
+                ],
+                "by": [
+                    "192.168.255.200"
+                ],
+                "with": "aamail 0500",
+                "date": "2021-03-02T16:33:21+03:00"
+            }
+        ],
+        "header": {
+            "date": [
+                "Tue, 02 Mar 2021 16:33:19 +0300"
+            ],
+            "x-sender": [
+                "192.168.255.216 (BazhenovAD@egp.spb.ru)"
+            ],
+            "mime-version": [
+                "1.0"
+            ],
+            "cc": [
+                "a11@yandex.ru"
+            ],
+            "content-type": [
+                "multipart/related; type=\"multipart/alternative\"; boundary=\"----=_NextPart_000_0012_01D70F81.C14BFF20\""
+            ],
+            "received": [
+                "from BazhenovAD (bazhenovad.egp.local [192.168.255.216])\tby 192.168.255.200 with AAMail 0500;\tTue, 2 Mar 2021 16:33:21 +0300"
+            ],
+            "subject": [
+                "Sample 2"
+            ],
+            "message-id": [
+                "<AA0346AA4C374BFFBB74892CDCD00592@egp.local>"
+            ],
+            "x-mailer": [
+                "Microsoft Windows Mail 6.0.6002.18197"
+            ],
+            "from": [
+                "BazhenovAD <BazhenovAD@egp.spb.ru>"
+            ],
+            "to": [
+                "GlebovNS@egp.spb.ru"
+            ],
+            "x-spam-smtp": [
+                "(SM21030201876417) - Spam/NOT"
+            ],
+            "organization": [
+                "\u041e\u041e\u041e \"\u0415\u0432\u0433\u0435\u043d\u0438\u0439 \u0413\u0435\u0440\u0430\u0441\u0438\u043c\u043e\u0432 \u0438 \u043f\u0430\u0440\u0442\u043d\u0435\u0440\u044b\""
+            ],
+            "x-priority": [
+                "3"
+            ],
+            "x-mimeole": [
+                "Produced By Microsoft MimeOLE V6.1.7601.17609"
+            ],
+            "x-msmail-priority": [
+                "Normal"
+            ]
+        }
+    }
+}

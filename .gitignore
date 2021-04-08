@@ -1,0 +1,13 @@
+/Work/eml/data/out/
+*.pyc
+Work/eml/pdfkit/__pycache__/__init__.cpython-38.pyc
+Work/eml/pdfkit/__pycache__/api.cpython-38.pyc
+Work/eml/pdfkit/__pycache__/configuration.cpython-38.pyc
+Work/eml/pdfkit/__pycache__/pdfkit.cpython-38.pyc
+Work/eml/pdfkit/__pycache__/source.cpython-38.pyc
+Work/eml/pdfkit/__pycache__/__init__.cpython-38.pyc
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.pyc
