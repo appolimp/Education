@@ -376,8 +376,8 @@ def change_html(html, images_id_and_path, attachments, info_about_letters, chars
 
 
 def is_correct_file(path):
-    with open(path, 'rb') as f:
-        for line in f:
+    with open(path, 'rb') as file:
+        if any(file):
             return True
 
 
@@ -430,7 +430,6 @@ def convert_eml_to_html(eml_path):
         # Шаг 6.
         shutil.copy2(eml_path, temp_dir)  # копирует исходный eml в папку. Мб переместить?
         create_pdf(html_path, folder_for_log=folder_path)
-        print(1)
         copy_folder(temp_dir, folder_path)
 
         logging.info('OK. Convert eml to html ["{}" --> "{}"]'.format(eml_path, folder_path))
@@ -454,8 +453,8 @@ def main(folder):
             logging.error(f'Отказано в доступе: {eml_file}')
             count_error.append(eml_file)
 
-        except Exception as err:
-            logging.exception(err)
+        except Exception as err_convert:
+            logging.exception(err_convert)
             count_error.append(eml_file)
 
     logging.info('Convert {} eml files to html'.format(len(eml_files)))
@@ -470,8 +469,8 @@ if __name__ == '__main__':
         datefmt='%H:%M:%S')
     try:
         main(folder=PATH)
-    except Exception as err:
-        logging.exception(err)
+    except Exception as global_err:
+        logging.exception(global_err)
         raise
 
     finally:
