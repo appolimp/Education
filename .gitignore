@@ -12,3 +12,4 @@ __pycache__/
 *.py[cod]
 *.pyc
 /Work/eml/data/final_project/
+/Work/eml/pdfkit/
