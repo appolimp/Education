@@ -47,18 +47,22 @@ PATH_ERROR = 'error'
 PATH_TEMP = 'temp'
 
 CODE_AND_REFERENCES = {
-    'NRT2': ['ратуш'],
+    'NRT2': ['ратуш', 'нрт2', 'нр2', 'нр.', 'журко', '@gals'],
     'SevKab': ['лср', 'севкабел'],
-    'PETR3': ['setl', 'петровск'],
+    'PETR2': ['ппр2'],
+    'PETR3': ['setl', 'петровск', 'ппр3'],
     'NOVOALEX': ['speech', 'новоалексеевск'],
     'LEN34': ['ленинградск', 'ленинградк'],
     'KJV26': ['кожевенн'],
     'GR9': ['графск'],
-    'ChR41-55': ['черная речка', 'чр55', 'чр41', 'chr41', 'chr55'],
+    'ChR': ['черная речка', 'чр55', 'чр41', 'chr41', 'chr55', ' чр '],
     'CHAP': ['чаплыги'],
     'BAR4': ['барочн', 'rbi'],
-    'VO20': ['20-я лин', 'легенда во', 'васьк', 'легенда_во'],
+    'VO20': ['20-я лин', 'легенда во', 'васьк', 'легенда_во', 'васильевс'],
 }
+
+# ###################### TEMP ##########################################
+CREATED_NAME = set()
 
 
 # ###################### Folder and Files ###################################
@@ -101,31 +105,18 @@ def create_name(data_str, subject, code_building, file_type=''):
     """
 
     date = datetime.datetime.strptime(data_str, '%a, %d %b %Y %X %z')
-    name = ' '.join(str(i) for i in [date.strftime('%y%m%d_%H-%M'), file_type, code_building, (subject or 'Без темы>')] if i)
-    valid_name = make_file_name_valid(name)
+    name = ' '.join(str(i) for i in [date.date(), file_type, code_building, (subject or 'Без темы>')] if i)
+    name = make_file_name_valid(name)
+    name = name.replace(' Re ', ' ').replace(' RE ', ' ').replace(' Fwd', '').replace(' Fw', '').replace(' FW', '')
 
-    valid_name = valid_name.replace(' Re ', ' ').replace(' RE ', ' ').replace(' Fwd', '').replace(' Fw', '').replace(' FW', '')
+    if name in CREATED_NAME:
+        name = name + ' ' + str(uuid.uuid4().hex)[:3]
+        if name in CREATED_NAME:
+            raise NotImplementedError('Имя не уникально')
 
-    logging.debug('Create name: "{}"'.format(valid_name))
-    return valid_name
-
-
-def create_folder_or_pass_if_created(folder_path):
-    try:
-        os.mkdir(folder_path)
-        logging.debug('Create folder "{}"'.format(folder_path))
-    except FileExistsError:
-        pass
-
-
-def get_or_create_temp_folder(file_path, temp_folder_name):
-    folder, _ = os.path.split(file_path)
-
-    folder_temp = os.path.join(folder, temp_folder_name)
-    create_folder_or_pass_if_created(folder_temp)
-
-    logging.debug('Get or create temp folder')
-    return folder_temp
+    CREATED_NAME.add(name)
+    logging.debug('Create name: "{}"'.format(name))
+    return name
 
 
 def write_part(part, folder_for_save, ext=''):
@@ -158,7 +149,7 @@ def create_pdf(file_path, folder_for_log=''):
         pdfkit.from_file(file_path, pdf_path, configuration=config, options=wkhtmltopdf_options,)
         logging.debug('Create pdf: "{}"'.format(pdf_path))
     except OSError:
-        logging.error(f'ER. Error with create PDF [{folder_for_log}]')
+        logging.debug(f'ER. Error with create PDF [{folder_for_log}]')
         count_error.append(folder_for_log)
 
 
@@ -226,6 +217,18 @@ def parse_attachment_and_save(message, folder_for_save):
 
 
 def get_html(message):
+    def get_charset(content_type: str):
+        prefix = 'charset='
+        values = [val.strip() for val in content_type.split(';')]
+
+        for val in values:
+            if val.startswith(prefix):
+                charset = val.lstrip(prefix).replace('"', '')
+                logging.debug(f'Get charset document [{charset}]')
+                return charset
+
+        raise NotImplementedError
+
     for part in message.walk():
         if part.get_content_type() == 'text/html':
             charset = get_charset(part['Content-Type'])
@@ -244,19 +247,6 @@ def get_html(message):
             return fake_html, charset
 
     raise Exception('Html not found')
-
-
-def get_charset(content_type: str):
-    prefix = 'charset='
-    values = [val.strip() for val in content_type.split(';')]
-
-    for val in values:
-        if val.startswith(prefix):
-            charset = val.lstrip(prefix).replace('"', '')
-            logging.debug(f'Get charset document [{charset}]')
-            return charset
-
-    raise NotImplementedError
 
 
 def create_fake_html(text: str, charset: str):
@@ -358,6 +348,28 @@ def change_html(html, images_id_and_path, attachments, info_about_letters, chars
         logging.debug('Add charset to html')
         return head + html_
 
+    def change_charset(html_, charset_):
+        """
+
+        :type html_: str
+        :param charset_: необходимая кодировка
+        :type charset_: str
+        :rtype: str
+        """
+        # Поиск кодировки в строке вида: "charset=utf-8" и "charset="koi8-r""
+        pattern = re.compile(r'charset=[\"\']?([\w-]*)[\"\';]?')
+        result = re.search(pattern, html_)
+
+        if result is None:  # charset не задан в html
+            html_ = add_charset_to_top(html_, charset_)
+        else:
+            html_charset = result.group(1)
+            if html_charset != charset_:
+                html_ = html_.replace(html_charset, charset_, 1)
+                logging.debug(f'Change charset in html [{html_charset}] --> [{charset_}]')
+
+        return html_
+
     if images_id_and_path:
         html = replace_link_to_image(html, images_id_and_path)
 
@@ -369,8 +381,9 @@ def change_html(html, images_id_and_path, attachments, info_about_letters, chars
         info_about_letters = create_list('Information about letter:', info_about_letters, sign='points')
         html = add_to_top(html, info_about_letters)
 
-    if charset and 'charset' not in html:
-        html = add_charset_to_top(html, charset)
+    if charset:
+        html = change_charset(html, charset)
+
     logging.debug('Change html')
     return html
 
@@ -444,6 +457,7 @@ def main(folder):
 
     folder = folder if folder.endswith('\\') else folder + '\\'  # для корректной работы glob
     eml_files = glob.glob(folder + '*.eml')  # get all .eml files in a list
+    logging.info(f'Find {len(eml_files)} .eml files')
 
     for eml_file in eml_files:
         try:
