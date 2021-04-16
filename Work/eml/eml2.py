@@ -57,7 +57,7 @@ CODE_AND_REFERENCES = {
     'ChR41-55': ['черная речка', 'чр55', 'чр41', 'chr41', 'chr55'],
     'CHAP': ['чаплыги'],
     'BAR4': ['барочн', 'rbi'],
-    'VO20': ['20-я лин', 'легенда во', 'васьк', 'легенда_во', ' во '],
+    'VO20': ['20-я лин', 'легенда во', 'васьк', 'легенда_во'],
 }
 
 
@@ -80,7 +80,7 @@ def make_file_name_valid(file_name, rep='', empty='empty_name'):
     while name.endswith('.'):
         name = name[:-1]
 
-    name = name[:220]  # ограничение по максимальной длине. максимум 249 для папки. взял с запасом
+    name = name[:180]  # ограничение по максимальной длине. максимум 249 для папки. взял с запасом
     name = name if name else empty
 
     if name != file_name:
@@ -101,10 +101,10 @@ def create_name(data_str, subject, code_building, file_type=''):
     """
 
     date = datetime.datetime.strptime(data_str, '%a, %d %b %Y %X %z')
-    name = ' '.join(str(i) for i in [date.date(), file_type, code_building, subject] if i)
+    name = ' '.join(str(i) for i in [date.date(), file_type, code_building, subject or 'Без темы>'] if i)
     valid_name = make_file_name_valid(name)
 
-    valid_name = valid_name.replace(' Re', '').replace(' RE', '').replace(' Fwd', '').replace(' Fw', '').replace(' FW', '')
+    valid_name = valid_name.replace(' Re ', ' ').replace(' RE ', ' ').replace(' Fwd', '').replace(' Fw', '').replace(' FW', '')
 
     logging.debug('Create name: "{}"'.format(valid_name))
     return valid_name
@@ -141,21 +141,25 @@ def write_part(part, folder_for_save, ext=''):
 
 
 def write_html(html, html_path, charset):
-    with open(html_path, 'wb') as f:
-        f.write(html.encode(charset))
+    with open(html_path, 'wb') as file_html:
+        file_html.write(html.encode(charset))
 
     return html_path
 
 
-def create_pdf(file_path):
-    config = pdfkit.configuration(wkhtmltopdf=PATH_WKHTMLTOPDF)  # чтобы не добавлять программу wkhtmltopdf в PATH
-    wkhtmltopdf_options = {'enable-local-file-access': None,  # Для доступа к локальным файлам
-                           'quiet': '',  # Подавление логирования
-                           }
+def create_pdf(file_path, folder_for_log=''):
+    try:
+        config = pdfkit.configuration(wkhtmltopdf=PATH_WKHTMLTOPDF)  # чтобы не добавлять программу wkhtmltopdf в PATH
+        wkhtmltopdf_options = {'enable-local-file-access': None,  # Для доступа к локальным файлам
+                               'quiet': '',  # Подавление логирования
+                               }
 
-    pdf_path = os.path.splitext(file_path)[0] + '.pdf'
-    pdfkit.from_file(file_path, pdf_path, configuration=config, options=wkhtmltopdf_options)
-    logging.debug('Create pdf: "{}"'.format(pdf_path))
+        pdf_path = os.path.splitext(file_path)[0] + '.pdf'
+        pdfkit.from_file(file_path, pdf_path, configuration=config, options=wkhtmltopdf_options,)
+        logging.debug('Create pdf: "{}"'.format(pdf_path))
+    except OSError:
+        logging.error(f'ER. Error with create PDF [{folder_for_log}]')
+        count_error.append(folder_for_log)
 
 
 def copy_folder(folder, new_path):
@@ -164,20 +168,6 @@ def copy_folder(folder, new_path):
         shutil.rmtree(folder_path_long)
 
     shutil.copytree(folder, folder_path_long)
-
-
-def rename_folder(folder_path, attachments):
-    folder_path_long = "\\\\?\\" + os.path.abspath(folder_path)  # в win 7 нужно обрабатывать длинные пути (>260)
-    root, folder_name = os.path.split(folder_path)
-
-    new_name = make_file_name_valid(folder_name + ' -- ' + ', '.join(attachments))
-    new_path = os.path.join(root, new_name)
-
-    if os.path.exists(new_path):
-        shutil.rmtree(new_path)
-
-    os.rename(folder_path, new_path)
-    logging.debug('Add attachments to name folder: "{}"'.format(new_path))
 
 
 # ###################### Parsing ############################################
@@ -218,7 +208,7 @@ def parse_attachment_and_save(message, folder_for_save):
     attach_name_and_path = []
 
     for part in message.iter_attachments():
-        if part.get_content_type() == 'application/octet-stream':  # Вложения
+        if 'application/' in part.get_content_type():  # Вложения
             name = write_part(part, folder_for_save)
 
             if name.endswith('.eml'):
@@ -287,7 +277,7 @@ def create_fake_html(text: str, charset: str):
 
 
 # ###################### Main logic #########################################
-def find_building_code_in_message(html, title, default='$$$$'):
+def find_building_code_in_message(html, title, attachments, default='$$$$'):
     """
     Пытается найти код здания по максимальному вхождения похожих слов (references) в html и заголовок
 
@@ -295,19 +285,25 @@ def find_building_code_in_message(html, title, default='$$$$'):
     :type title: str
     :param html: тело письма
     :type html: str
+    :parameter attachments: имена вложенией
+    :type attachments: list[str]
     :param default: значение по умолчанию
     :type default: str
     :return: Найденное значение или значение по умолчанию
     :rtype: str
     """
 
-    text = html.lower() + title.lower()  # декодируем для работы поиска
+    text = html.lower() + title.lower() + ''.join(attachments or []).lower()  # декодируем для работы поиска
 
     code_in_and_counts = {}
     for code, references in CODE_AND_REFERENCES.items():
+        code_in_text = 10 * bool(code.lower() in text)
+        count_entry_title = 20 * sum(title.lower().count(reference) for reference in references)
         count_entry = sum(text.count(reference) for reference in references)
-        if count_entry or code.lower() in text:
-            code_in_and_counts[code] = sum(text.count(reference) for reference in references)
+        all_count = code_in_text + count_entry_title + count_entry
+
+        if all_count:
+            code_in_and_counts[code] = all_count
 
     code_building = max(code_in_and_counts, key=lambda x: code_in_and_counts[x], default=default)
     logging.debug('Find code building as "{}"'.format(code_building) if code_building != default else
@@ -316,16 +312,17 @@ def find_building_code_in_message(html, title, default='$$$$'):
     return code_building
 
 
-def change_html(html, images_id_and_path, attachments, info_about_letters):
+def change_html(html, images_id_and_path, attachments, info_about_letters, charset=None):
     """
     Заменяем ссылки на изображения, добавляем информацию о вложениях и письме
-
-    :type html: bytes
+    :type html: str
     :param images_id_and_path: словарь из cid сообщений и относительных путей к нему, для замены в html
     :type images_id_and_path: dict[str, str]
     :type attachments: dict or list or set
     :type info_about_letters: list
-    :rtype: bytes
+    :parameter charset: кодировка документа
+    :type charset: str
+    :rtype: str
     """
 
     def replace_link_to_image(html_, images_id_and_path_):
@@ -350,12 +347,16 @@ def change_html(html, images_id_and_path, attachments, info_about_letters):
 
     def add_to_top(html_, added_lines):
         lines = html_.split('\n')
-        number_line_start_with = next((i for i, line in enumerate(lines) if '<body' in line.lower()), 0)
-        # FIXME упадет если не найдет. но странно если в html нет body
+        number_line_start_with = next((i for i, line in enumerate(lines) if '<body' in line.lower()), -1)  # -1 чтобы записать в первую строчку
 
         result = lines[:number_line_start_with + 1] + added_lines + lines[number_line_start_with + 1:]
         logging.debug('Add {} lines to top'.format(len(added_lines)))
         return '\n'.join(result)
+
+    def add_charset_to_top(html_, charset_):
+        head = f'<META content="text/html; charset={charset_}" http-equiv=Content-Type>\n'
+        logging.debug('Add charset to html')
+        return head + html_
 
     if images_id_and_path:
         html = replace_link_to_image(html, images_id_and_path)
@@ -368,6 +369,8 @@ def change_html(html, images_id_and_path, attachments, info_about_letters):
         info_about_letters = create_list('Information about letter:', info_about_letters, sign='points')
         html = add_to_top(html, info_about_letters)
 
+    if charset and 'charset' not in html:
+        html = add_charset_to_top(html, charset)
     logging.debug('Change html')
     return html
 
@@ -403,65 +406,57 @@ def convert_eml_to_html(eml_path):
                           'Priority: ' + msg.get("X-MSMail-Priority", ""),
                           ]
 
-    # Шаг 1. Пытаемся найти код здания
-    code_building = find_building_code_in_message(html, msg['Subject'])
-
     with tempfile.TemporaryDirectory() as temp_dir:
         logging.debug(temp_dir)
-        # Шаг 2. Формируем имя и создаем папку для сохранения всей информации
 
         # Шаг 3. Parse и сохраняем картинки и вложения
         images_id_and_path = parse_images_and_save(msg, temp_dir)
         attachments = parse_attachment_and_save(msg, temp_dir)
 
         # Шаг 4. Заменяем ссылки на изображения, добавляем информацию о вложениях и письме
-        html_correct = change_html(html, images_id_and_path, attachments, info_about_letters)
+        html_correct = change_html(html, images_id_and_path, attachments, info_about_letters, charset)
 
         # Шаг 5. Формируем имя для .html и сохраняем
+        # Шаг 1. Пытаемся найти код здания
+        code_building = find_building_code_in_message(html, msg['Subject'], list(attachments))
         html_name = create_name(msg['Date'], msg['Subject'], code_building, file_type='Почта') + '.html'
         html_path = os.path.join(temp_dir, html_name)
         write_html(html_correct, html_path, charset)
 
-        shutil.copy2(eml_path, temp_dir)  # копирует исходный eml в папку. Мб переместить?
-        folder_name = create_name(msg['Date'], msg['Subject'] or 'Без темы>', code_building)
-        if attachments:
-            folder_name = make_file_name_valid(folder_name + ' -- ' + ', '.join(attachments))
-
+        folder_name = create_name(msg['Date'], msg['Subject'], code_building)
         folder_path = os.path.join(os.path.split(eml_path)[0], PATH_OUT, folder_name)
         logging.debug(f'Get folder path [{folder_path}]')
 
-        # Шаг 6. Копируем исходный eml в папку, И создаем pdf из html
-        try:
-            create_pdf(html_path)
-        except OSError:
-            folder_path = os.path.join(os.path.split(eml_path)[0], PATH_ERROR, folder_name)
-            logging.error(f'ER. Can not create PDF [{eml_path}]')
-            count_error.append(folder_path)
-        else:
-            folder_path = os.path.join(os.path.split(eml_path)[0], PATH_OUT, folder_name)
-            logging.debug(f'Get folder path [{folder_path}]')
-        finally:
-            copy_folder(temp_dir, folder_path)
+        # Шаг 6.
+        shutil.copy2(eml_path, temp_dir)  # копирует исходный eml в папку. Мб переместить?
+        create_pdf(html_path, folder_for_log=folder_path)
+        print(1)
+        copy_folder(temp_dir, folder_path)
 
         logging.info('OK. Convert eml to html ["{}" --> "{}"]'.format(eml_path, folder_path))
 
 
-def main():
-    path_test = r'D:\share\Revit_Script\Education\Work\eml\data\final_project\Inbox\617F79BB-00000063.eml1'
+def main(folder):
+    path_test = r'D:\share\Revit_Script\Education\Work\eml\data\final_project\Inbox\5D537AEE-00000138.eml'
     if os.path.exists(path_test):
         logging.debug('Start test')
         convert_eml_to_html(path_test)
         return
 
-    path = PATH if PATH.endswith('\\') else PATH + '\\'  # для корректной работы glob
-    eml_files = glob.glob(path + '*.eml')  # get all .eml files in a list
+    folder = folder if folder.endswith('\\') else folder + '\\'  # для корректной работы glob
+    eml_files = glob.glob(folder + '*.eml')  # get all .eml files in a list
 
     for eml_file in eml_files:
         try:
             convert_eml_to_html(eml_file)
-        except Exception:
+
+        except PermissionError:
+            logging.error(f'Отказано в доступе: {eml_file}')
             count_error.append(eml_file)
-            raise
+
+        except Exception as err:
+            logging.exception(err)
+            count_error.append(eml_file)
 
     logging.info('Convert {} eml files to html'.format(len(eml_files)))
 
@@ -474,12 +469,13 @@ if __name__ == '__main__':
         format='[%(asctime)s] %(levelname).1s: %(message)s',
         datefmt='%H:%M:%S')
     try:
-        main()
+        main(folder=PATH)
     except Exception as err:
-        logging.error(err)
+        logging.exception(err)
         raise
+
     finally:
-        print(f'Create: {len(count_error)}; Error: {len(count_error)}')
+        print(f'Error: {len(count_error)}')
         if count_error:
             with open('errors_files.txt', 'w', encoding='utf-8') as f:
                 f.write('\n'.join(count_error))
