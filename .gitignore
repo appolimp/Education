@@ -11,3 +11,5 @@ Work/eml/pdfkit/__pycache__/__init__.cpython-38.pyc
 __pycache__/
 *.py[cod]
 *.pyc
+/Work/eml/data/final_project/
+/Work/eml/pdfkit/
