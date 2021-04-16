@@ -80,7 +80,7 @@ def make_file_name_valid(file_name, rep='', empty='empty_name'):
     while name.endswith('.'):
         name = name[:-1]
 
-    name = name[:180]  # ограничение по максимальной длине. максимум 249 для папки. взял с запасом
+    name = name[:99]  # ограничение по максимальной длине. максимум 249 для папки. взял с запасом
     name = name if name else empty
 
     if name != file_name:
@@ -101,7 +101,7 @@ def create_name(data_str, subject, code_building, file_type=''):
     """
 
     date = datetime.datetime.strptime(data_str, '%a, %d %b %Y %X %z')
-    name = ' '.join(str(i) for i in [date.date(), file_type, code_building, subject or 'Без темы>'] if i)
+    name = ' '.join(str(i) for i in [date.strftime('%y%m%d_%H-%M'), file_type, code_building, (subject or 'Без темы>')] if i)
     valid_name = make_file_name_valid(name)
 
     valid_name = valid_name.replace(' Re ', ' ').replace(' RE ', ' ').replace(' Fwd', '').replace(' Fw', '').replace(' FW', '')
@@ -347,9 +347,9 @@ def change_html(html, images_id_and_path, attachments, info_about_letters, chars
 
     def add_to_top(html_, added_lines):
         lines = html_.split('\n')
-        number_line_start_with = next((i for i, line in enumerate(lines) if '<body' in line.lower()), -1)  # -1 чтобы записать в первую строчку
+        number_line_start_with = next((i for i, line in enumerate(lines) if '<body' in line.lower()), 0)  # 0 чтобы записать в первую строчку
 
-        result = lines[:number_line_start_with + 1] + added_lines + lines[number_line_start_with + 1:]
+        result = lines[:number_line_start_with] + added_lines + lines[number_line_start_with:]
         logging.debug('Add {} lines to top'.format(len(added_lines)))
         return '\n'.join(result)
 
@@ -438,7 +438,7 @@ def convert_eml_to_html(eml_path):
 def main(folder):
     path_test = r'D:\share\Revit_Script\Education\Work\eml\data\final_project\Inbox\5D537AEE-00000138.eml'
     if os.path.exists(path_test):
-        logging.debug('Start test')
+        logging.info('Start test')
         convert_eml_to_html(path_test)
         return
 
@@ -474,9 +474,10 @@ if __name__ == '__main__':
         raise
 
     finally:
-        print(f'Error: {len(count_error)}')
+        logging.info(f'Error: {len(count_error)}')
         if count_error:
-            with open('errors_files.txt', 'w', encoding='utf-8') as f:
+            with open('errors_files.txt', 'a', encoding='utf-8') as f:
+                f.write(f'\n\n{datetime.datetime.now()}: [{PATH}]\n')
                 f.write('\n'.join(count_error))
 
     # input()
