@@ -39,7 +39,7 @@ import pdfkit  # сторонняя библиотека. должна быть 
 PATH_WKHTMLTOPDF = r'wkhtmltopdf/bin/wkhtmltopdf.exe'  # Чтобы не добавлять программу в PATH
 
 # ###################### Input ##############################################
-PATH = r'D:\share\Revit_Script\Education\Work\eml\data\final_project\Inbox'  # Папка с .eml файлами, вложенные папки скрипт не просматривает
+PATH = r'data\final_project\marina\Sent Items'  # Папка с .eml файлами, вложенные папки скрипт не просматривает
 
 # ###################### Constants ##########################################
 PATH_OUT = 'out'
@@ -47,18 +47,22 @@ PATH_ERROR = 'error'
 PATH_TEMP = 'temp'
 
 CODE_AND_REFERENCES = {
-    'NRT2': ['ратуш'],
+    'NRT2': ['ратуш', 'нрт2', 'нр2', 'нр.', 'журко', '@gals'],
     'SevKab': ['лср', 'севкабел'],
-    'PETR3': ['setl', 'петровск'],
+    'PETR2': ['ппр2'],
+    'PETR3': ['setl', 'петровск', 'ппр3'],
     'NOVOALEX': ['speech', 'новоалексеевск'],
     'LEN34': ['ленинградск', 'ленинградк'],
     'KJV26': ['кожевенн'],
     'GR9': ['графск'],
-    'ChR41-55': ['черная речка', 'чр55', 'чр41', 'chr41', 'chr55'],
+    'ChR': ['черная речка', 'чр55', 'чр41', 'chr41', 'chr55', ' чр '],
     'CHAP': ['чаплыги'],
     'BAR4': ['барочн', 'rbi'],
-    'VO20': ['20-я лин', 'легенда во', 'васьк', 'легенда_во'],
+    'VO20': ['20-я лин', 'легенда во', 'васьк', 'легенда_во', 'васильевс'],
 }
+
+# ###################### TEMP ##########################################
+CREATED_NAME = set()
 
 
 # ###################### Folder and Files ###################################
@@ -80,7 +84,7 @@ def make_file_name_valid(file_name, rep='', empty='empty_name'):
     while name.endswith('.'):
         name = name[:-1]
 
-    name = name[:180]  # ограничение по максимальной длине. максимум 249 для папки. взял с запасом
+    name = name[:99]  # ограничение по максимальной длине. максимум 249 для папки. взял с запасом
     name = name if name else empty
 
     if name != file_name:
@@ -101,31 +105,18 @@ def create_name(data_str, subject, code_building, file_type=''):
     """
 
     date = datetime.datetime.strptime(data_str, '%a, %d %b %Y %X %z')
-    name = ' '.join(str(i) for i in [date.date(), file_type, code_building, subject or 'Без темы>'] if i)
-    valid_name = make_file_name_valid(name)
+    name = ' '.join(str(i) for i in [date.date(), file_type, code_building, (subject or 'Без темы>')] if i)
+    name = make_file_name_valid(name)
+    name = name.replace(' Re ', ' ').replace(' RE ', ' ').replace(' Fwd', '').replace(' Fw', '').replace(' FW', '')
 
-    valid_name = valid_name.replace(' Re ', ' ').replace(' RE ', ' ').replace(' Fwd', '').replace(' Fw', '').replace(' FW', '')
+    if name in CREATED_NAME:
+        name = name + ' ' + str(uuid.uuid4().hex)[:3]
+        if name in CREATED_NAME:
+            raise NotImplementedError('Имя не уникально')
 
-    logging.debug('Create name: "{}"'.format(valid_name))
-    return valid_name
-
-
-def create_folder_or_pass_if_created(folder_path):
-    try:
-        os.mkdir(folder_path)
-        logging.debug('Create folder "{}"'.format(folder_path))
-    except FileExistsError:
-        pass
-
-
-def get_or_create_temp_folder(file_path, temp_folder_name):
-    folder, _ = os.path.split(file_path)
-
-    folder_temp = os.path.join(folder, temp_folder_name)
-    create_folder_or_pass_if_created(folder_temp)
-
-    logging.debug('Get or create temp folder')
-    return folder_temp
+    CREATED_NAME.add(name)
+    logging.debug('Create name: "{}"'.format(name))
+    return name
 
 
 def write_part(part, folder_for_save, ext=''):
@@ -158,8 +149,8 @@ def create_pdf(file_path, folder_for_log=''):
         pdfkit.from_file(file_path, pdf_path, configuration=config, options=wkhtmltopdf_options,)
         logging.debug('Create pdf: "{}"'.format(pdf_path))
     except OSError:
-        logging.error(f'ER. Error with create PDF [{folder_for_log}]')
-        count_error.append(folder_for_log)
+        logging.debug(f'ER. Error with create PDF [{folder_for_log}]')
+        error_with_pdf.append(folder_for_log)
 
 
 def copy_folder(folder, new_path):
@@ -226,6 +217,18 @@ def parse_attachment_and_save(message, folder_for_save):
 
 
 def get_html(message):
+    def get_charset(content_type: str):
+        prefix = 'charset='
+        values = [val.strip() for val in content_type.split(';')]
+
+        for val in values:
+            if val.startswith(prefix):
+                charset = val.lstrip(prefix).replace('"', '')
+                logging.debug(f'Get charset document [{charset}]')
+                return charset
+
+        raise NotImplementedError
+
     for part in message.walk():
         if part.get_content_type() == 'text/html':
             charset = get_charset(part['Content-Type'])
@@ -244,19 +247,6 @@ def get_html(message):
             return fake_html, charset
 
     raise Exception('Html not found')
-
-
-def get_charset(content_type: str):
-    prefix = 'charset='
-    values = [val.strip() for val in content_type.split(';')]
-
-    for val in values:
-        if val.startswith(prefix):
-            charset = val.lstrip(prefix).replace('"', '')
-            logging.debug(f'Get charset document [{charset}]')
-            return charset
-
-    raise NotImplementedError
 
 
 def create_fake_html(text: str, charset: str):
@@ -293,6 +283,9 @@ def find_building_code_in_message(html, title, attachments, default='$$$$'):
     :rtype: str
     """
 
+    html = html or ''
+    title = title or ''
+
     text = html.lower() + title.lower() + ''.join(attachments or []).lower()  # декодируем для работы поиска
 
     code_in_and_counts = {}
@@ -306,6 +299,9 @@ def find_building_code_in_message(html, title, attachments, default='$$$$'):
             code_in_and_counts[code] = all_count
 
     code_building = max(code_in_and_counts, key=lambda x: code_in_and_counts[x], default=default)
+    if 'петухов' in text:
+        code_building = code_building + '_BIM'
+
     logging.debug('Find code building as "{}"'.format(code_building) if code_building != default else
                   'Error with find code building')
 
@@ -347,9 +343,9 @@ def change_html(html, images_id_and_path, attachments, info_about_letters, chars
 
     def add_to_top(html_, added_lines):
         lines = html_.split('\n')
-        number_line_start_with = next((i for i, line in enumerate(lines) if '<body' in line.lower()), -1)  # -1 чтобы записать в первую строчку
+        number_line_start_with = next((i for i, line in enumerate(lines) if '<body' in line.lower()), 0)  # 0 чтобы записать в первую строчку
 
-        result = lines[:number_line_start_with + 1] + added_lines + lines[number_line_start_with + 1:]
+        result = lines[:number_line_start_with] + added_lines + lines[number_line_start_with:]
         logging.debug('Add {} lines to top'.format(len(added_lines)))
         return '\n'.join(result)
 
@@ -357,6 +353,28 @@ def change_html(html, images_id_and_path, attachments, info_about_letters, chars
         head = f'<META content="text/html; charset={charset_}" http-equiv=Content-Type>\n'
         logging.debug('Add charset to html')
         return head + html_
+
+    def change_charset(html_, charset_):
+        """
+
+        :type html_: str
+        :param charset_: необходимая кодировка
+        :type charset_: str
+        :rtype: str
+        """
+        # Поиск кодировки в строке вида: "charset=utf-8" и "charset="koi8-r""
+        pattern = re.compile(r'charset=[\"\']?([\w-]*)[\"\';]?')
+        result = re.search(pattern, html_)
+
+        if result is None:  # charset не задан в html
+            html_ = add_charset_to_top(html_, charset_)
+        else:
+            html_charset = result.group(1)
+            if html_charset != charset_:
+                html_ = html_.replace(html_charset, charset_, 1)
+                logging.debug(f'Change charset in html [{html_charset}] --> [{charset_}]')
+
+        return html_
 
     if images_id_and_path:
         html = replace_link_to_image(html, images_id_and_path)
@@ -369,8 +387,9 @@ def change_html(html, images_id_and_path, attachments, info_about_letters, chars
         info_about_letters = create_list('Information about letter:', info_about_letters, sign='points')
         html = add_to_top(html, info_about_letters)
 
-    if charset and 'charset' not in html:
-        html = add_charset_to_top(html, charset)
+    if charset:
+        html = change_charset(html, charset)
+
     logging.debug('Change html')
     return html
 
@@ -438,12 +457,13 @@ def convert_eml_to_html(eml_path):
 def main(folder):
     path_test = r'D:\share\Revit_Script\Education\Work\eml\data\final_project\Inbox\5D537AEE-00000138.eml'
     if os.path.exists(path_test):
-        logging.debug('Start test')
+        logging.info('Start test')
         convert_eml_to_html(path_test)
         return
 
     folder = folder if folder.endswith('\\') else folder + '\\'  # для корректной работы glob
     eml_files = glob.glob(folder + '*.eml')  # get all .eml files in a list
+    logging.info(f'Find {len(eml_files)} .eml files')
 
     for eml_file in eml_files:
         try:
@@ -460,6 +480,7 @@ def main(folder):
     logging.info('Convert {} eml files to html'.format(len(eml_files)))
 
 
+error_with_pdf = []
 count_error = []
 # ###################### Start ##############################################
 if __name__ == '__main__':
@@ -474,9 +495,12 @@ if __name__ == '__main__':
         raise
 
     finally:
-        print(f'Error: {len(count_error)}')
+        logging.info(f'Error: {len(count_error)}')
+        logging.info(f'Error with pdf: {len(error_with_pdf)}')
+
         if count_error:
-            with open('errors_files.txt', 'w', encoding='utf-8') as f:
+            with open('errors_files.txt', 'a', encoding='utf-8') as f:
+                f.write(f'\n\n{datetime.datetime.now()}: [{PATH}]\n')
                 f.write('\n'.join(count_error))
 
     # input()
