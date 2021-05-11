@@ -39,7 +39,7 @@ import pdfkit  # сторонняя библиотека. должна быть 
 PATH_WKHTMLTOPDF = r'wkhtmltopdf/bin/wkhtmltopdf.exe'  # Чтобы не добавлять программу в PATH
 
 # ###################### Input ##############################################
-PATH = r'D:\share\Revit_Script\Education\Work\eml\data\final_project\Inbox'  # Папка с .eml файлами, вложенные папки скрипт не просматривает
+PATH = r'data\final_project\marina\Sent Items'  # Папка с .eml файлами, вложенные папки скрипт не просматривает
 
 # ###################### Constants ##########################################
 PATH_OUT = 'out'
@@ -150,7 +150,7 @@ def create_pdf(file_path, folder_for_log=''):
         logging.debug('Create pdf: "{}"'.format(pdf_path))
     except OSError:
         logging.debug(f'ER. Error with create PDF [{folder_for_log}]')
-        count_error.append(folder_for_log)
+        error_with_pdf.append(folder_for_log)
 
 
 def copy_folder(folder, new_path):
@@ -283,6 +283,9 @@ def find_building_code_in_message(html, title, attachments, default='$$$$'):
     :rtype: str
     """
 
+    html = html or ''
+    title = title or ''
+
     text = html.lower() + title.lower() + ''.join(attachments or []).lower()  # декодируем для работы поиска
 
     code_in_and_counts = {}
@@ -296,6 +299,9 @@ def find_building_code_in_message(html, title, attachments, default='$$$$'):
             code_in_and_counts[code] = all_count
 
     code_building = max(code_in_and_counts, key=lambda x: code_in_and_counts[x], default=default)
+    if 'петухов' in text:
+        code_building = code_building + '_BIM'
+
     logging.debug('Find code building as "{}"'.format(code_building) if code_building != default else
                   'Error with find code building')
 
@@ -474,6 +480,7 @@ def main(folder):
     logging.info('Convert {} eml files to html'.format(len(eml_files)))
 
 
+error_with_pdf = []
 count_error = []
 # ###################### Start ##############################################
 if __name__ == '__main__':
@@ -489,6 +496,8 @@ if __name__ == '__main__':
 
     finally:
         logging.info(f'Error: {len(count_error)}')
+        logging.info(f'Error with pdf: {len(error_with_pdf)}')
+
         if count_error:
             with open('errors_files.txt', 'a', encoding='utf-8') as f:
                 f.write(f'\n\n{datetime.datetime.now()}: [{PATH}]\n')
