@@ -16,8 +16,7 @@ def is_possible(volumes):
 
 
 def calculate_count(volumes):
-    count_iteration = sum(max(volumes) - volume for volume in set(volumes))
-    return count_iteration
+    return volumes[-1] - volumes[0]
 
 
 def write_answer(path, data):
