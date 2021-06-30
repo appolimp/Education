@@ -16,6 +16,20 @@ def write_answer(path, data):
         f.write(' '.join(str(i) for i in data))
 
 
+def cache(func):
+    result = {}
+
+    def wraps(*args):
+        a_i = args[0]
+        if a_i not in result:
+            result[a_i] = func(*args)
+
+        return result[a_i]
+
+    return wraps
+
+
+@cache
 def find_dist(a_i, a, k):
     print(a)
 
