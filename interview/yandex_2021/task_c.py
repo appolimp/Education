@@ -33,7 +33,7 @@ def cache(func):
 def find_dist(a_i, counter, k):
     items = [0] * counter[a_i]
 
-    for i in range(max(counter)):
+    for i in range(1, max(counter)):
         if len(items) > k:
             break
 
