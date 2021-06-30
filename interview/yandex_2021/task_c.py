@@ -30,23 +30,27 @@ def cache(func):
 
 
 @cache
-def find_dist(a_i, a, k):
-    index = a.index(a_i)
-    k += 1  # так как пропускаем a_i
+def find_dist(a_i, counter, k):
+    items = [0] * counter[a_i]
 
-    start = (index - k) if index - k > 0 else 0
-    items = a[start: index + k]
+    for i in range(max(counter)):
+        if len(items) > k:
+            break
 
-    distances = sorted(abs(a_j - a_i) for a_j in items)
+        count_a_plus = counter.get(a_i + i, 0)
+        count_a_minus = counter.get(a_i - i, 0)
 
-    return sum(distances[:k])
+        items.extend(count_a_plus * [i]) if count_a_plus else None
+        items.extend(count_a_minus * [i]) if count_a_minus else None
+
+    return sum(items[:k+1])
 
 
 def main():
     k, a = read_input('input.txt')
-    a_sorted = sorted(a)
+    counter = {a_i: a.count(a_i) for a_i in a}
 
-    f = [find_dist(a_i, a_sorted[:], k) for a_i in a]
+    f = [find_dist(a_i, counter, k) for a_i in a]
     write_answer('output.txt', f)
 
 
