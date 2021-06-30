@@ -38,12 +38,12 @@ def main():
 
     for snapshot in snapshots[::-1]:
         photo = get_left_corners_from_snapshots(snapshot)
-        new_photo = photo.difference(actual_photo)
+        actual_photo.update(photo)
+        count_photo_per_days.append(len(actual_photo))
 
-        count_photo_per_days.append(len(new_photo))
-        actual_photo.update(new_photo)
-
-    write_answer('output.txt', count_photo_per_days[::-1])
+    count_new_photo_per_day = [count_photo_per_days[0]] + [now - last for now, last in zip(count_photo_per_days[1:],
+                                                                                           count_photo_per_days)]
+    write_answer('output.txt', count_new_photo_per_day[::-1])
 
 
 if __name__ == '__main__':
