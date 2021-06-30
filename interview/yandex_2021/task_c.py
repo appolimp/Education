@@ -31,24 +31,22 @@ def cache(func):
 
 @cache
 def find_dist(a_i, a, k):
-    print(a)
-
     index = a.index(a_i)
+    k += 1  # так как пропускаем a_i
+
     start = (index - k) if index - k > 0 else 0
-
     items = a[start: index + k]
-    print(a_i, index, items)
 
-    a_modules = sorted(abs(a_j - a_i) for a_j in a)
+    distances = sorted(abs(a_j - a_i) for a_j in items)
 
-    return sum(a_modules[1:k+1])  # +1, так как пропускаем а_i
+    return sum(distances[:k])
 
 
 def main():
     k, a = read_input('input.txt')
-    a.sort()
+    a_sorted = sorted(a)
 
-    f = [find_dist(a_i, a[:], k) for a_i in a]
+    f = [find_dist(a_i, a_sorted[:], k) for a_i in a]
     write_answer('output.txt', f)
 
 
