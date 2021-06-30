@@ -2,6 +2,8 @@
 Task C. Расстояние
 """
 
+from collections import Counter
+
 
 def read_input(path):
     with open(path) as f:
@@ -32,24 +34,28 @@ def cache(func):
 @cache
 def find_dist(a_i, counter, k):
     items = [0] * counter[a_i]
+    values = list(counter)
+    index = values.index(a_i)
 
-    for i in range(1, max(counter)):
+    for i in range(1, len(counter)):
         if len(items) > k:
             break
 
-        count_a_plus = counter.get(a_i + i, 0)
-        count_a_minus = counter.get(a_i - i, 0)
+        count_a_plus = counter[values[index - i]] if index - 1 >= 0 else 0
+        count_a_minus = counter[values[index + i]] if index + 1 <= len(counter) else 0
 
         items.extend(count_a_plus * [i]) if count_a_plus else None
         items.extend(count_a_minus * [i]) if count_a_minus else None
+
+    print(items)
     return sum(items[:k+1])
 
 
 def main():
     k, a = read_input('input.txt')
-    counter = {a_i: a.count(a_i) for a_i in a}
+    counter = Counter(sorted(a))
 
-    f = [find_dist(a_i, counter, k) for a_i in a]
+    f = (find_dist(a_i, counter, k) for a_i in a)
     write_answer('output.txt', f)
 
 
