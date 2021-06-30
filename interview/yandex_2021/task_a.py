@@ -1,3 +1,8 @@
+"""
+Task A. Андрей и кислота
+"""
+
+import random
 
 
 def read_input(path):
@@ -9,17 +14,28 @@ def read_input(path):
 
 
 def is_possible(volumes):
-    return False
+    return all(first <= second for first, second in zip(volumes, volumes[1:]))
 
 
 def calculate_count(volumes):
-    pass
+    count_iteration = sum(max(volumes) - volume for volume in set(volumes))
+    return count_iteration
+
+
+def write_answer(path, data):
+    with open(path, 'w') as f:
+        f.write(str(data))
+
+    print(data)
 
 
 def main():
-    n, volumes = read_input('input.txt')
+    _, volumes = read_input('input.txt')
+    # volumes = [random.randint(1, 100) for _ in range(10)]
+    volumes.sort()
+    print(volumes)
     count_operation = calculate_count(volumes) if is_possible(volumes) else -1
-    print(count_operation)
+    write_answer('output.txt', count_operation)
 
 
 if __name__ == '__main__':
