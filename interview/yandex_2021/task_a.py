@@ -2,8 +2,6 @@
 Task A. Андрей и кислота
 """
 
-import random
-
 
 def read_input(path):
     with open(path) as f:
@@ -26,14 +24,9 @@ def write_answer(path, data):
     with open(path, 'w') as f:
         f.write(str(data))
 
-    print(data)
-
 
 def main():
     _, volumes = read_input('input.txt')
-    # volumes = [random.randint(1, 100) for _ in range(10)]
-    volumes.sort()
-    print(volumes)
     count_operation = calculate_count(volumes) if is_possible(volumes) else -1
     write_answer('output.txt', count_operation)
 
