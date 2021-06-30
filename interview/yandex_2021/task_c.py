@@ -42,7 +42,6 @@ def find_dist(a_i, counter, k):
 
         items.extend(count_a_plus * [i]) if count_a_plus else None
         items.extend(count_a_minus * [i]) if count_a_minus else None
-
     return sum(items[:k+1])
 
 
